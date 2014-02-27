@@ -1,0 +1,3 @@
+# Lines starting with '#" are considered comments.
+# ignore any files in Debug, these files don't need to be backed up
+Debug

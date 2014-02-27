@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<configurations XML_version="1.2" id="configurations_0">
+<configuration XML_version="1.2" id="Spectrum Digital DSK-EVM-eZdsp onboard USB Emulator_0">
+        <instance XML_version="1.2" desc="Spectrum Digital DSK-EVM-eZdsp onboard USB Emulator_0" href="connections/SDDSKUSB_Connection.xml" id="Spectrum Digital DSK-EVM-eZdsp onboard USB Emulator_0" xml="SDDSKUSB_Connection.xml" xmlpath="connections"/>
+        <connection XML_version="1.2" id="Spectrum Digital DSK-EVM-eZdsp onboard USB Emulator_0">
+            <instance XML_version="1.2" href="drivers/sdgo28xxeZdspusb.xml" id="drivers" xml="sdgo28xxeZdspusb.xml" xmlpath="drivers"/>
+            <platform XML_version="1.2" id="platform_0">
+                <instance XML_version="1.2" desc="TMS320F28335_0" href="devices/f28335.xml" id="TMS320F28335_0" xml="f28335.xml" xmlpath="devices"/>
+            <device HW_revision="1" XML_version="1.2" description="" id="TMS320F28335_0" partnum="TMS320F28335">
+                    <cpu HW_revision="1.0" XML_version="1.2" desc="C28xx" description="CPU" id="C2800" isa="TMS320C28XX"/>
+                </device>
+            </platform>
+        </connection>
+    </configuration>
+</configurations>
