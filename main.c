@@ -21,7 +21,8 @@
  */
 
 #define rk1b2b
-//define rk2b2b
+#define b2b
+//define rk2b2b #define b2b
 
 /*
  * Revisions
@@ -132,6 +133,7 @@ void SetAll_AO(float32 *V)
         }
     }
 }
+
 //////////////////////////////////Beginning of Jesse's added variables 8/27/2013//////////////////////////
 
 volatile float32 T = 0.00005;   //sample time = 1/10k = 0.0001 for 10kHz ISR (and fsw)
@@ -287,7 +289,7 @@ volatile float32 Vpi = 14.3; //28.57738 ;
 //Timer interrupt.  The frequency is linked to the PWM 1 interrupt
 /////////////////////////////////////////ISR///////////////////////////////////////////
 
-#ifdef rk1b2b
+#ifdef b2b
 interrupt void timer_isr(void)
 {
 
@@ -448,286 +450,6 @@ else
 //                                  INV
 ///////////////////////////////////////////////////////////////////////////////////////
 
-	// 9/10/13
-	// Inverter controller changed to PI for vd and vq of INV output - Jesse 9/10/13
-
-	////////////////////////////////////////////////////////////////////////
-	//RTDS voltage references
-	////////////////////////////////////////////////////////////////////////
-	viaref_rtds = 0.1354*(GetAIN_B7()-2048);
-	vibref_rtds = 0.1354*(GetAIN_A5()-2048);
-	vicref_rtds = 0.1354*(GetAIN_A7()-2048);
-
-
-	theta_vout = theta_vout + w_inv*T;
-	//t_inv = t_inv + T;
-	if (theta_vout > 6.28319)
-		{theta_vout = theta_vout - 6.28319;
-	//	 t_inv = 0;
-		 }
-
-	via = 0.05227*(GetAIN_A0()-2048);
-	vib = 0.05227*(GetAIN_A1()-2048);
-	vic = 0.05227*(GetAIN_A6()-2048);
-
-	////////////////////////////////////////////////////////////////////////
-	//measured voltage abc-->dq
-	////////////////////////////////////////////////////////////////////////
-	vid = 0.666667*(via*cos(theta_vout) + vib*cos(theta_vout-2.0944) + vic*cos(theta_vout+2.0944)) ;
-	viq = 0.666667*(-via*sin(theta_vout) - vib*sin(theta_vout-2.0944) - vic*sin(theta_vout+2.0944)) ;
-
-
-//if INV is enabled from CANbus control, perform Vd, Vq PI loops, else reset the loops
-if(INVenable == 1)
-{
-	////////////////////////////////////////////////////////////////////////
-	//output voltage dq PI loops
-	////////////////////////////////////////////////////////////////////////
-	//Vd* PI
-	e_vid = vidref-vid;  //error = id*-id
-	u_vid = u_vidn1+(ki_vid*T-kp_vid)*e_vidn1+kp_vid*e_vid; //PI control
-
-	e_vidn1 = e_vid; //update delayed variable
-	u_vidn1 = u_vid; //update delayed variable
-
-
-	//Vq* PI
-	e_viq = viqref-viq; //error = iq*-iq
-	u_viq = u_viqn1+(ki_viq*T-kp_viq)*e_viqn1+kp_viq*e_viq; //PI control
-
-	e_viqn1 = e_viq; //update delayed variable
-	u_viqn1 = u_viq; //update delayed variable
-}
-else
-{
-	e_vid = 0;
-	u_vid = 0;
-	e_vidn1 = 0;
-	u_vidn1 = 0;
-
-	e_viq = 0;
-	u_viq = 0;
-	e_viqn1 = 0;
-	u_viqn1 = 0;
-}
-
-	////////////////////////////////////////////////////////////////////////
-	//dq->abc inverse transform for vd, vq references
-	////////////////////////////////////////////////////////////////////////
-	/* closed loop references */
-//	viaref = u_vid*cos(theta_vout) - u_viq*sin(theta_vout);
-//	vibref = u_vid*cos(theta_vout-2.0944) - u_viq*sin(theta_vout-2.0944);
-//	vicref = u_vid*cos(theta_vout+2.0944) - u_viq*sin(theta_vout+2.0944);
-
-	/* open loop references */
-	viaref = 70*cos(theta_vout);// - viqref*sin(theta_vout);
-	vibref = 70*cos(theta_vout-2.0944);// - viqref*sin(theta_vout-2.0944);
-	vicref = 70*cos(theta_vout+2.0944);// - viqref*sin(theta_vout+2.0944);
-
-	/* rtds open loop references */
-//	viaref = viaref_rtds;
-//	vibref = vibref_rtds;
-//	vicref = vicref_rtds;
-
-	//PWM
-	dia = 0.5*(viaref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
-	dib = 0.5*(vibref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
-	dic = 0.5*(vicref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
-
-
-	//set PWM duty out
-	SetPWM_Iau(dia*PWM_PD);  //dia is [0 1], i.e. percentage of PWM_PD, the clock cycles of PWM period
-	SetPWM_Ibu(dib*PWM_PD);  //dia is [0 1], i.e. percentage of PWM_PD, the clock cycles of PWM period
-	SetPWM_Icu(dic*PWM_PD);  //dia is [0 1], i.e. percentage of PWM_PD, the clock cycles of PWM period
-
-/////////////////////////////////////////END OF INV CODE///////////////////////////////////////////
-
-
-
-
-
-	//debugging, storage buffers to view in CodeComposer debugger graphs
-
-	vabuff[buffidx] = va; //GetAIN_A0()-2048;
-	vbbuff[buffidx] = vb; //GetAIN_A1()-2048;
-	vcbuff[buffidx] = vc; //GetAIN_A6()-2048;
-	vdcbuff[buffidx] = Vdc;
-	iabuff[buffidx] = ia;
-	ibbuff[buffidx] = ib;
-	icbuff[buffidx] = ic;
-
-	buffidx++;
-	if(buffidx > 167) buffidx = 0;
-
-	// Acknowledge this interrupt to receive more interrupts from group 3
-	PieCtrlRegs.PIEACK.all = PIEACK_GROUP3;
-
-	ClearDO_10(); //clear output, square wave should be at 5k for 10kHz ISR (toggling is at 10k)
-	return;
-}
-#endif
-
-#ifdef rk2b2b
-interrupt void timer_isr(void)
-{
-
-	// Clear INT flag for this timer
-	EPwm1Regs.ETCLR.bit.INT = 1;
-
-	SetDO_10(); //set output, square wave should be at 5k for 10kHz ISR (toggling is at 10k)
-
-
-
-
-
-	float32 Vab, Vbc, Va, Vb, Vc, Vr1, Vr2, Ir1, Ir2, EVp, UVp, EVps, UVps, EVpc, UVpc, EVr, UVr, Ur1, Ur2, wd;
-	
-	float32 Vi1, Vi2, Ii1, Ii2, Vi2f, Vi1f, EVi1, EVi2, UVi1, UVi2, Ui1, Ui2, Ui3;
-   
-//	PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
-//	PieCtrlRegs.PIEACK.all = PIEACK_GROUP3;
-	StartADC();
-
-/////////////////////////////////////////REC///////////////////////////////////////////``````````````````
-
-//	vab = 0.0915*(GetAIN_B0()-2048); //  0.05227 = 1/[1/R1*2.5*R2*1.5*2048/10]
-//	vbc = 0.0915*(GetAIN_B1()-2048); //  0.05227 = 1/[1/R1*2.5*R2*1.5*2048/10]
-
-//	vab = 0.1705*(GetAIN_B0()-2048);
-//	vbc = 0.1705*(GetAIN_B1()-2048);
-
-//	ia = 0.0086172*(GetAIN_B2()-2048); //  0.011822 = 1/[R2/1000*1.57*2048/10]
-	ia = 0.011822*(GetAIN_B2()-2048); //  0.011822 = 1/[R2/1000*1.57*2048/10]
-	ib = 0.011822*(GetAIN_B3()-2048); //  0.011822 = 1/[R2/1000*1.57*2048/10]
-	ic = 0.011822*(GetAIN_B4()-2048); //  0.011822 = 1/[R2/1000*1.57*2048/10]
-
-	Vdc = 0.2687*(GetAIN_B5()-2048); // 0.1313 = 1/[1/R1*2.5*R2*1.5*2048/10]
-
-	////////////////////////////////////////////////////////////////////////
-	//input voltage L-L --> L-N
-	////////////////////////////////////////////////////////////////////////
-//	va = 0.333333 * ( 2*vab+vbc);  //(GetAIN_B0()-2048)+(GetAIN_B1()-2048) ) ;
-//	vb = 0.333333 * ( vbc-vab);    //GetAIN_B1()-GetAIN_B0() ) ;
-//	vc = 0.333333 * ( -vab-2*vbc); //0172343 * ( -(GetAIN_B0()-2048)-2*(GetAIN_B1()-2048) ) ;
-
-	va = 0.1705*(GetAIN_B0()-2048);
-	vb = 0.1705*(GetAIN_B1()-2048);
-	vc = 0.1705*(GetAIN_B6()-2048);
-
-	////////////////////////////////////////////////////////////////////////
-	//PLL (includes abc->dq for input voltages once the phase is locked on)
-	////////////////////////////////////////////////////////////////////////
-	vrd = 0.666667*(va*cos(theta_vin) + vb*cos(theta_vin-2.0944) + vc*cos(theta_vin+2.0944)) ;
-	vrq = 0.666667*(-va*sin(theta_vin) - vb*sin(theta_vin-2.0944) - vc*sin(theta_vin+2.0944)) ;
-
-
-	//PLECS PLL
-
-	omega_pll = omega_plln1+(ki_pll*T-kp_pll)*vrqn1+kp_pll*vrq; //PI control
-
-	theta_vin = theta_vinn1+omega_plln1*T; //self-resetting integrator for omega to find theta
-	if (theta_vin > 6.28319) {theta_vin = theta_vin-6.28319;} //reset integrator at 2pi
-	theta_vinn1 = theta_vin; //update delayed variable
-
-	vrqn1 = vrq; //update delayed variable
-	//if (omega_pll > 502.0) {omega_pll = 502.0;}
-	//if (omega_pll < -502.0) {omega_pll = -502.0;}
-	omega_plln1 = omega_pll; //update delayed variable
-
-	////////////////////////////////////////////////////////////////////////
-	//abc->dq transform for input current
-	////////////////////////////////////////////////////////////////////////
-	ird = 0.666667*(ia*cos(theta_vin) + ib*cos(theta_vin-2.0944) + ic*cos(theta_vin+2.0944)) ;
-	irq = 0.666667*(-ia*sin(theta_vin) - ib*sin(theta_vin-2.0944) - ic*sin(theta_vin+2.0944)) ;
-
-
-//if AFE is enabled from CANbus control, perform Vdc, ird, irq PI loops, else reset the loops
-if(AFEenable == 1)
-{
-	////////////////////////////////////////////////////////////////////
-	// Vdc PI control
-	////////////////////////////////////////////////////////////////////
-	e_vdc = Vdcref-Vdc;
-
-	irdref = irdrefn1+(ki_vdc*T-kp_vdc)*e_vdcn1+kp_vdc*e_vdc; //id reference from Vdc PI control
-
-	irdrefn1 = irdref; //update delayed variable
-	e_vdcn1 = e_vdc; //update delayed variable
-
-	////////////////////////////////////////////////////////////////////
-	// id, iq PI control, note iqref set to 0 in variable declarations
-	////////////////////////////////////////////////////////////////////
-	//Vd* PI
-	e_ird = irdref-ird;  //error = id*-id
-	u_ird = u_irdn1+(ki_ird*T-kp_ird)*e_irdn1+kp_ird*e_ird; //PI control
-	vrdref = u_ird-irq*2*PI*60*L; //add decoupling term
-	vrdref = vrd-vrdref;
-
-	e_irdn1 = e_ird; //update delayed variable
-	u_irdn1 = u_ird; //update delayed variable
-
-
-	//Vq* PI
-	e_irq = irqref-irq; //error = iq*-iq
-	u_irq = u_irqn1+(ki_irq*T-kp_irq)*e_irqn1+kp_irq*e_irq; //PI control
-	vrqref = u_irq+ird*2*PI*60*L; //add decoupling term
-	vrqref = vrq-vrqref;
-
-	e_irqn1 = e_irq; //update delayed variable
-	u_irqn1 = u_irq; //update delayed variable
-}
-else
-{
-	e_vdc = 0;
-	irdref = 0;
-	irdrefn1 = 0;
-	e_vdcn1 = 0;
-
-	e_ird = 0;
-	u_ird = 0;
-	vrdref = 0;
-	e_irdn1 = 0;
-	u_irdn1 = 0;
-
-	e_irq = 0;
-	u_irq = 0;
-	vrqref = 0;
-	e_irqn1 = 0;
-	u_irqn1 = 0;
-}
-
-
-	////////////////////////////////////////////////////////////////////////
-	//dq->abc inverse transform for vd, vq references
-	////////////////////////////////////////////////////////////////////////
-	vraref = vrdref*cos(theta_vin) - vrqref*sin(theta_vin);
-	vrbref = vrdref*cos(theta_vin-2.0944) - vrqref*sin(theta_vin-2.0944);
-	vrcref = vrdref*cos(theta_vin+2.0944) - vrqref*sin(theta_vin+2.0944);
-
-	// TEST CODE FOR BENCHTOP TESTING OF UPDOWN PWM
-//	Vdc = 200;
-//	vraref = 75*cos(theta_vout);
-//	vrbref = 75*cos(theta_vout-2.0944);
-//	vrcref = 75*cos(theta_vout+2.0944);
-
-
-	//PWM
-	dra = 0.5*(vraref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
-	drb = 0.5*(vrbref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
-	drc = 0.5*(vrcref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
-
-	//set PWM duty out
-	SetPWM_Rau(dra*PWM_PD);  //dra is [0 1], i.e. percentage of PWM_PD, the clock cycles of PWM period
-	SetPWM_Rbu(drb*PWM_PD);  //dra is [0 1], i.e. percentage of PWM_PD, the clock cycles of PWM period
-	SetPWM_Rcu(drc*PWM_PD);  //dra is [0 1], i.e. percentage of PWM_PD, the clock cycles of PWM period
-
-/////////////////////////////////////////END OF REC CODE///////////////////////////////////////////
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-//                                  INV
-///////////////////////////////////////////////////////////////////////////////////////
-	
 	// 9/10/13
 	// Inverter controller changed to PI for vd and vq of INV output - Jesse 9/10/13
 
