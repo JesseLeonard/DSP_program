@@ -21,7 +21,7 @@
 								<listOptionValue builtIn="false" value="DEVICE_CONFIGURATION_ID=TMS320C28XX.TMS320F28335"/>
 								<listOptionValue builtIn="false" value="DEVICE_ENDIANNESS=little"/>
 								<listOptionValue builtIn="false" value="OUTPUT_FORMAT=COFF"/>
-								<listOptionValue builtIn="false" value="CCS_MBS_VERSION=5.1.0.01"/>
+								<listOptionValue builtIn="false" value="CCS_MBS_VERSION=5.5.0"/>
 								<listOptionValue builtIn="false" value="LINKER_COMMAND_FILE=28335_RAM_lnk.cmd"/>
 								<listOptionValue builtIn="false" value="RUNTIME_SUPPORT_LIBRARY=libc.a"/>
 								<listOptionValue builtIn="false" value="OUTPUT_TYPE=executable"/>
@@ -60,6 +60,7 @@
 								<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.LIBRARY.1317597745" name="Include library file or command file as input (--library, -l)" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.LIBRARY" valueType="libs">
 									<listOptionValue builtIn="false" value="&quot;libc.a&quot;"/>
 								</option>
+								<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.XML_LINK_INFO.1069770932" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.XML_LINK_INFO" value="&quot;DSP_program_linkInfo.xml&quot;" valueType="string"/>
 								<inputType id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exeLinker.inputType__CMD_SRCS.2896346" name="Linker Command Files" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exeLinker.inputType__CMD_SRCS"/>
 								<inputType id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exeLinker.inputType__CMD2_SRCS.713655837" name="Linker Command Files" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exeLinker.inputType__CMD2_SRCS"/>
 								<inputType id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exeLinker.inputType__GEN_CMDS.1814067858" name="Generated Linker Command Files" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exeLinker.inputType__GEN_CMDS"/>
@@ -99,7 +100,7 @@
 								<listOptionValue builtIn="false" value="DEVICE_CONFIGURATION_ID=TMS320C28XX.TMS320F28335"/>
 								<listOptionValue builtIn="false" value="DEVICE_ENDIANNESS=little"/>
 								<listOptionValue builtIn="false" value="OUTPUT_FORMAT=COFF"/>
-								<listOptionValue builtIn="false" value="CCS_MBS_VERSION=5.1.0.01"/>
+								<listOptionValue builtIn="false" value="CCS_MBS_VERSION=5.5.0"/>
 								<listOptionValue builtIn="false" value="LINKER_COMMAND_FILE=28335_RAM_lnk.cmd"/>
 								<listOptionValue builtIn="false" value="RUNTIME_SUPPORT_LIBRARY=libc.a"/>
 								<listOptionValue builtIn="false" value="OUTPUT_TYPE=executable"/>
@@ -135,6 +136,7 @@
 									<listOptionValue builtIn="false" value="&quot;${CG_TOOL_ROOT}/lib&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${CG_TOOL_ROOT}/include&quot;"/>
 								</option>
+								<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.XML_LINK_INFO.1514867154" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.XML_LINK_INFO" value="&quot;DSP_program_linkInfo.xml&quot;" valueType="string"/>
 								<inputType id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exeLinker.inputType__CMD_SRCS.1120206460" name="Linker Command Files" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exeLinker.inputType__CMD_SRCS"/>
 								<inputType id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exeLinker.inputType__CMD2_SRCS.944796562" name="Linker Command Files" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exeLinker.inputType__CMD2_SRCS"/>
 								<inputType id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exeLinker.inputType__GEN_CMDS.665751049" name="Generated Linker Command Files" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exeLinker.inputType__GEN_CMDS"/>
