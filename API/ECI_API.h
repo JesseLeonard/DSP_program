@@ -554,9 +554,21 @@ void DSP_init()
 	//****************************************************************
 	/*ePWM Setup.  ePWM A/B 1-6 are used.
 	 * PWM Constant Definitions are in 'DSP2833x_EPwm_defines.h'
+	 * TI Manual for this section as of 2/27/2014: "TMS320x2833x,
+	 * 2823x Enhanced Pulse Width Modulator (ePWM) Module"
+	 * Literature Number SPRUG04A October 2008-Revised 2009
+	 * http://www.ti.com/lit/ug/sprug04a/sprug04a.pdf
 	 * 
 	 * PWM Settings:
-	 * 			Ts = 9.6 kHz (150 Mhz / 9.6 kHz = 15,625.		
+	 * 			Symmetrical PWM using TB_COUNT_UPDOWN
+	 * 			Counter counts up to PWM_PD then back down
+	 * 			so period is actually 2*PWM_PD.
+	 * 			PWM_PD set at top of ECI_API.h
+	 *
+	 * 			2*PWM_PD = (150 MHz / fsw)
+	 * 			ex 1: for fsw = 10 kHz, PWM_PD = 7500
+	 * 			ex 2: for fsw = 20 kHz, PWM_PD = 3750
+	 *
 	 * 
 	 * Clock enable in init_sys_control().
 	 * Trap zones TZ1-6 are used as well.
@@ -822,6 +834,24 @@ void DSP_init()
 	 * 
 	 * We use CPU Timer 0 as the main timer set up.
 	 * Frequency is 9.6 Khz (TIMER_0_PD, same as PWM_PD).
+	 *
+	 * 11/13/2013 Jesse Leonard
+	 * Main timer_isr timer changed to PWM 1 interrupt, this is done with
+	 * PieVectTable.EPWM1_INT = &timer_isr
+	 * The main.c was modified as well to have
+	 * interrupt void timer_isr(void)
+     *  {
+     *  // Clear INT flag for this timer
+	 *  EPwm1Regs.ETCLR.bit.INT = 1;
+     *  .
+     *  .
+     *  .
+	 * // Acknowledge this interrupt to receive more interrupts from group 3
+	 * PieCtrlRegs.PIEACK.all = PIEACK_GROUP3;
+	 * ...
+	 *
+	 *
+	 *
 	 */
 	CpuTimer0Regs.PRD.half.LSW = TIMER_0_PD;			//9.6 KHz
 	CpuTimer0Regs.TCR.bit.TIE = 0x1;					//Enable Timer Interrupt.				

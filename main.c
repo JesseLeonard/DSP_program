@@ -19,6 +19,7 @@
  * 		accessing peripheral hardware.
  * *****************************************************************************
  */
+
 #define rk1b2b
 //define rk2b2b
 
