@@ -20,9 +20,13 @@
  * *****************************************************************************
  */
 
-#define rk1b2b
 #define b2b
-//define rk2b2b #define b2b
+#define rk1b2b
+//#define rk2b2b
+
+//#define npc
+//#define rk1npc
+//#define rk2npc
 
 /*
  * Revisions

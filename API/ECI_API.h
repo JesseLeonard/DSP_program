@@ -367,6 +367,21 @@ inline void DisablePWM_I(){GpioDataRegs.GPBSET.bit.GPIO35 = 1;	}  	//Disables PW
 
 #endif		//End alternative IGBT control.
 
+#ifdef npc
+	/*PWM Set Duty Cycle Functions*/
+	void SetPWM_Na1(Uint16 D)	{EPwm1Regs.CMPA.half.CMPA = (Uint16)(D);	}	//PWM1A
+	void SetPWM_Na3(Uint16 D)	{EPwm1Regs.CMPB = (Uint16)(D);				}	//PWM1B
+	void SetPWM_Na2(Uint16 D)	{EPwm2Regs.CMPA.half.CMPA = (Uint16)(D);	}	//PWM2A
+	void SetPWM_Na4(Uint16 D)	{EPwm2Regs.CMPB = (Uint16)(D);				}	//PWM2B
+	void SetPWM_Nb1(Uint16 D)	{EPwm3Regs.CMPA.half.CMPA = (Uint16)(D); 	}	//PWM3A
+	void SetPWM_Nb3(Uint16 D)	{EPwm3Regs.CMPB = (Uint16)(D);				}	//PWM3B
+	void SetPWM_Nb2(Uint16 D)	{EPwm4Regs.CMPA.half.CMPA = (Uint16)(D);	}	//PWM4A
+	void SetPWM_Nb4(Uint16 D)	{EPwm4Regs.CMPB = (Uint16)(D);				}	//PWM4B
+	void SetPWM_Nc1(Uint16 D)	{EPwm5Regs.CMPA.half.CMPA = (Uint16)(D);	}	//PWM5A
+	void SetPWM_Nc3(Uint16 D)	{EPwm5Regs.CMPB = (Uint16)(D);				}	//PWM5B
+	void SetPWM_Nc2(Uint16 D)	{EPwm6Regs.CMPA.half.CMPA = (Uint16)(D);	}	//PWM6A
+	void SetPWM_Nc4(Uint16 D)	{EPwm6Regs.CMPB = (Uint16)(D);				}	//PWM6B
+#endif
 /*****************************************************************************************************/
 /*ADC GET FUNCTIONS*/
 
