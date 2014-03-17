@@ -21,8 +21,9 @@
  */
 
 #define rk1b2b
+//define rk2b2b
 #define b2b
-//define rk2b2b #define b2b
+//#define npc
 
 /*
  * Revisions
@@ -593,7 +594,8 @@ void main(void)
 
     //Setup mailbox 1 for AFE PWM enable Message ID = 0x10000000
     //read byte 0 for 1 or 0
-	ECanaMboxes.MBOX1.MSGID.all = 0x10000000; // message Identifier
+#ifdef rk1b2b
+    ECanaMboxes.MBOX1.MSGID.all = 0x10000000; // message Identifier
 	ECanaMboxes.MBOX1.MSGID.bit.IDE = 1; //extended identifier
 	//set mailbox as receive
 	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
@@ -616,11 +618,40 @@ void main(void)
 	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
 	ECanaShadow.CANME.bit.ME2 = 1;
 	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+#endif
 
+	//change message IDs for rack 2 b2b PWM enables
+#ifdef rk2b2b
+    ECanaMboxes.MBOX1.MSGID.all = 0x10000002; // message Identifier
+	ECanaMboxes.MBOX1.MSGID.bit.IDE = 1; //extended identifier
+	//set mailbox as receive
+	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
+	ECanaShadow.CANMD.bit.MD1 = 1;  //mailbox direction to receive
+	ECanaRegs.CANMD.all = ECanaShadow.CANMD.all;
+	//enable mailbox
+	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
+	ECanaShadow.CANME.bit.ME1 = 1;
+	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+
+    //Setup mailbox 2 for INV PWM enable Message ID = 0x10000001
+    //read byte 0 for 1 or 0
+	ECanaMboxes.MBOX2.MSGID.all = 0x10000003; // message Identifier
+	ECanaMboxes.MBOX2.MSGID.bit.IDE = 1; //extended identifier
+	//set mailbox as receive
+	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
+	ECanaShadow.CANMD.bit.MD2 = 1;  //mailbox direction to receive
+	ECanaRegs.CANMD.all = ECanaShadow.CANMD.all;
+	//enable mailbox
+	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
+	ECanaShadow.CANME.bit.ME2 = 1;
+	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+#endif
 
 	StartTimer();
 	while(1)
 	{
+
+#ifdef b2b
 		////////////////////////////////////////////
 		//AFE enable signal from CANbus
 		////////////////////////////////////////////
@@ -651,7 +682,7 @@ void main(void)
 		else
 			{DisablePWM_I();}
 
-
+		//DAC outputs for b2b converters
 
 		V[0] = 0;
 		V[1] = GetAIN_A0()*0.00073242 ; //(3/4096)/0.051703046561388 ; //VaINV
@@ -666,6 +697,25 @@ void main(void)
 		V[3] = GetAIN_A4()*0.00073242 ; //(3/4096)/0.006152662540805 ; //IoINVc  0.006153
 
 		SetAll_AO(V);
+#endif
+
+		//DAC outputs for NPC
+#ifdef npc
+		V[0] = 0;
+		V[1] = GetAIN_B0()*0.00073242 ; //(3/4096)/0.051703046561388 ; //VabNPC
+		V[2] = GetAIN_B2()*0.00073242 ; //(3/4096)/0.011693505697301 ; //IaNPC
+		V[3] = GetAIN_A0()*0.00073242 ; //(3/4096)/0.124087311747332 ; //Vdc1NPC
+
+		SetAll_AO(V);
+
+		V[0] = 3;
+		V[1] = GetAIN_A1()*0.00073242 ; //(3/4096)/0.051703046561388 ; //Vdc2  0.0931
+		V[2] = GetAIN_A2()*0.00073242 ; //(3/4096)/0.008617174426898 ; //Io+NPC  0.006153
+		V[3] = GetAIN_A3()*0.00073242 ; //(3/4096)/0.006152662540805 ; //Io-NPC  0.006153
+
+		SetAll_AO(V);
+#endif
+
 	}
 }						
 
