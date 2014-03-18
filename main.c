@@ -523,14 +523,14 @@ else
 	//dq->abc inverse transform for vd, vq references
 	////////////////////////////////////////////////////////////////////////
 	/* closed loop references */
-//	viaref = u_vid*cos(theta_vout) - u_viq*sin(theta_vout);
-//	vibref = u_vid*cos(theta_vout-2.0944) - u_viq*sin(theta_vout-2.0944);
-//	vicref = u_vid*cos(theta_vout+2.0944) - u_viq*sin(theta_vout+2.0944);
+	viaref = u_vid*cos(theta_vout) - u_viq*sin(theta_vout);
+	vibref = u_vid*cos(theta_vout-2.0944) - u_viq*sin(theta_vout-2.0944);
+	vicref = u_vid*cos(theta_vout+2.0944) - u_viq*sin(theta_vout+2.0944);
 
 	/* open loop references */
-	viaref = 70*cos(theta_vout);// - viqref*sin(theta_vout);
-	vibref = 70*cos(theta_vout-2.0944);// - viqref*sin(theta_vout-2.0944);
-	vicref = 70*cos(theta_vout+2.0944);// - viqref*sin(theta_vout+2.0944);
+//	viaref = 70*cos(theta_vout);// - viqref*sin(theta_vout);
+//	vibref = 70*cos(theta_vout-2.0944);// - viqref*sin(theta_vout-2.0944);
+//	vicref = 70*cos(theta_vout+2.0944);// - viqref*sin(theta_vout+2.0944);
 
 	/* rtds open loop references */
 //	viaref = viaref_rtds;
