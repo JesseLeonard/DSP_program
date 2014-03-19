@@ -20,10 +20,10 @@
  * *****************************************************************************
  */
 
-#define rk1b2b
-//define rk2b2b
-#define b2b
-//#define npc
+//#define rk1b2b
+//#define rk2b2b
+//#define b2b
+#define npc
 
 /*
  * Revisions
@@ -290,7 +290,7 @@ volatile float32 Vpi = 14.3; //28.57738 ;
 //Timer interrupt.  The frequency is linked to the PWM 1 interrupt
 /////////////////////////////////////////ISR///////////////////////////////////////////
 
-#ifdef b2b
+//#ifdef b2b
 interrupt void timer_isr(void)
 {
 
@@ -489,6 +489,14 @@ else
 if(INVenable == 1)
 {
 	////////////////////////////////////////////////////////////////////////
+	//ramp INV output voltage
+	////////////////////////////////////////////////////////////////////////
+	if(vidref<170)
+	{vidref = vidref + 0.00283;}
+	else
+	{vidref = 170;}
+
+	////////////////////////////////////////////////////////////////////////
 	//output voltage dq PI loops
 	////////////////////////////////////////////////////////////////////////
 	//Vd* PI
@@ -508,6 +516,9 @@ if(INVenable == 1)
 }
 else
 {
+	//for ramp
+	vidref = 10;
+
 	e_vid = 0;
 	u_vid = 0;
 	e_vidn1 = 0;
@@ -528,9 +539,9 @@ else
 	vicref = u_vid*cos(theta_vout+2.0944) - u_viq*sin(theta_vout+2.0944);
 
 	/* open loop references */
-//	viaref = 70*cos(theta_vout);// - viqref*sin(theta_vout);
-//	vibref = 70*cos(theta_vout-2.0944);// - viqref*sin(theta_vout-2.0944);
-//	vicref = 70*cos(theta_vout+2.0944);// - viqref*sin(theta_vout+2.0944);
+//	viaref = 170*cos(theta_vout);// - viqref*sin(theta_vout);
+//	vibref = 170*cos(theta_vout-2.0944);// - viqref*sin(theta_vout-2.0944);
+//	vicref = 170*cos(theta_vout+2.0944);// - viqref*sin(theta_vout+2.0944);
 
 	/* rtds open loop references */
 //	viaref = viaref_rtds;
@@ -573,7 +584,7 @@ else
 	ClearDO_10(); //clear output, square wave should be at 5k for 10kHz ISR (toggling is at 10k)
 	return;
 }
-#endif
+//#endif
 
 
 
