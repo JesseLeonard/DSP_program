@@ -142,6 +142,7 @@ void SetAll_AO(float32 *V)
 volatile float32 T = 0.00005;   //sample time = 1/10k = 0.0001 for 10kHz ISR (and fsw)
 int AFEenable = 0;
 int INVenable = 0;
+int NPCenable = 0;
 
 //debugging variables
 volatile float32 vabuff[167];
@@ -157,6 +158,11 @@ int buffidx = 0;
 volatile float32 viaref_rtds;
 volatile float32 vibref_rtds;
 volatile float32 vicref_rtds;
+
+//NPC variables
+volatile float32 deltaVnp;
+volatile float32 sector;
+volatile float32 vz_npc;
 
 //variables for input
 volatile float32 Vdc;
@@ -292,7 +298,7 @@ volatile float32 Vpi = 14.3; //28.57738 ;
 //Timer interrupt.  The frequency is linked to the PWM 1 interrupt
 /////////////////////////////////////////ISR///////////////////////////////////////////
 
-//#ifdef b2b
+
 interrupt void timer_isr(void)
 {
 
@@ -313,6 +319,7 @@ interrupt void timer_isr(void)
 //	PieCtrlRegs.PIEACK.all = PIEACK_GROUP3;
 	StartADC();
 
+#ifdef b2b
 /////////////////////////////////////////REC///////////////////////////////////////////
 
 
@@ -562,8 +569,212 @@ else
 	SetPWM_Icu(dic*PWM_PD);  //dia is [0 1], i.e. percentage of PWM_PD, the clock cycles of PWM period
 
 /////////////////////////////////////////END OF INV CODE///////////////////////////////////////////
+#endif
+
+#ifdef npc
+/////////////////////////////////////////NPC///////////////////////////////////////////
 
 
+	////////////////////////////////////////////////////////////////////////
+	//input current and DC link voltage measurements
+	////////////////////////////////////////////////////////////////////////
+
+	ia = 0.01723*(GetAIN_B2()-2048); //  0.01723 = 1/[1/1000*178.5*0.2382*2048/1.5]
+	ib = 0.01723*(GetAIN_B3()-2048); //  0.01723 = 1/[1/1000*178.5*0.2382*2048/1.5]
+	ic = 0.01723*(GetAIN_B4()-2048); //  0.01723 = 1/[1/1000*178.5*0.2382*2048/1.5]
+
+	Vdc = 0.2687*(GetAIN_A0() + GetAIN_A1() - 4096); // 0.2687 = 1/[1/39k*2.5*178.5*0.2382*2048/1.5]
+	deltaVnp = 0.2687*(GetAIN_A0() - GetAIN_A1());   // 0.2687 = 1/[1/39k*2.5*178.5*0.2382*2048/1.5]
+
+	////////////////////////////////////////////////////////////////////////
+	//input voltage L-L --> L-N
+	////////////////////////////////////////////////////////////////////////
+
+	vab = 0.1705*(GetAIN_B0()-2048); //  0.1705 = 1/[1/24.75k*2.5*178.5*0.2382*2048/1.5]
+	vbc = 0.1705*(GetAIN_B1()-2048); //  0.1705 = 1/[1/24.75k*2.5*178.5*0.2382*2048/1.5]
+
+	va = 0.333333 * ( 2*vab+vbc);
+	vb = 0.333333 * ( vbc-vab);
+	vc = 0.333333 * ( -vab-2*vbc);
+
+//	va = 0.1705*(GetAIN_B0()-2048);
+//	vb = 0.1705*(GetAIN_B1()-2048);
+//	vc = 0.1705*(GetAIN_B6()-2048);
+
+	////////////////////////////////////////////////////////////////////////
+	//PLL (includes abc->dq for input voltages once the phase is locked on)
+	////////////////////////////////////////////////////////////////////////
+	vrd = 0.666667*(va*cos(theta_vin) + vb*cos(theta_vin-2.0944) + vc*cos(theta_vin+2.0944)) ;
+	vrq = 0.666667*(-va*sin(theta_vin) - vb*sin(theta_vin-2.0944) - vc*sin(theta_vin+2.0944)) ;
+
+
+	//PLECS PLL
+
+	omega_pll = omega_plln1+(ki_pll*T-kp_pll)*vrqn1+kp_pll*vrq; //PI control
+
+	theta_vin = theta_vinn1+omega_plln1*T; //self-resetting integrator for omega to find theta
+	if (theta_vin > 6.28319) {theta_vin = theta_vin-6.28319;} //reset integrator at 2pi
+	theta_vinn1 = theta_vin; //update delayed variable
+
+	vrqn1 = vrq; //update delayed variable
+	//if (omega_pll > 502.0) {omega_pll = 502.0;}
+	//if (omega_pll < -502.0) {omega_pll = -502.0;}
+	omega_plln1 = omega_pll; //update delayed variable
+
+	////////////////////////////////////////////////////////////////////////
+	//abc->dq transform for input current
+	////////////////////////////////////////////////////////////////////////
+	ird = 0.666667*(ia*cos(theta_vin) + ib*cos(theta_vin-2.0944) + ic*cos(theta_vin+2.0944)) ;
+	irq = 0.666667*(-ia*sin(theta_vin) - ib*sin(theta_vin-2.0944) - ic*sin(theta_vin+2.0944)) ;
+
+
+//if AFE is enabled from CANbus control, perform Vdc, ird, irq PI loops, else reset the loops
+if(NPCenable == 1)
+{
+	////////////////////////////////////////////////////////////////////
+	// Vdc PI control
+	////////////////////////////////////////////////////////////////////
+	e_vdc = Vdcref-Vdc;
+
+	irdref = irdrefn1+(ki_vdc*T-kp_vdc)*e_vdcn1+kp_vdc*e_vdc; //id reference from Vdc PI control
+
+	irdrefn1 = irdref; //update delayed variable
+	e_vdcn1 = e_vdc; //update delayed variable
+
+	////////////////////////////////////////////////////////////////////
+	// id, iq PI control, note iqref set to 0 in variable declarations
+	////////////////////////////////////////////////////////////////////
+	//Vd* PI
+	e_ird = irdref-ird;  //error = id*-id
+	u_ird = u_irdn1+(ki_ird*T-kp_ird)*e_irdn1+kp_ird*e_ird; //PI control
+	vrdref = u_ird-irq*2*PI*60*L; //add decoupling term
+	vrdref = vrd-vrdref;
+
+	e_irdn1 = e_ird; //update delayed variable
+	u_irdn1 = u_ird; //update delayed variable
+
+
+	//Vq* PI
+	e_irq = irqref-irq; //error = iq*-iq
+	u_irq = u_irqn1+(ki_irq*T-kp_irq)*e_irqn1+kp_irq*e_irq; //PI control
+	vrqref = u_irq+ird*2*PI*60*L; //add decoupling term
+	vrqref = vrq-vrqref;
+
+	e_irqn1 = e_irq; //update delayed variable
+	u_irqn1 = u_irq; //update delayed variable
+}
+else
+{
+	e_vdc = 0;
+	irdref = 0;
+	irdrefn1 = 0;
+	e_vdcn1 = 0;
+
+	e_ird = 0;
+	u_ird = 0;
+	vrdref = 0;
+	e_irdn1 = 0;
+	u_irdn1 = 0;
+
+	e_irq = 0;
+	u_irq = 0;
+	vrqref = 0;
+	e_irqn1 = 0;
+	u_irqn1 = 0;
+}
+
+
+	////////////////////////////////////////////////////////////////////////
+	//dq->abc inverse transform for vd, vq references
+	////////////////////////////////////////////////////////////////////////
+	vraref = (vrdref*cos(theta_vin) - vrqref*sin(theta_vin))/Vdc;
+	vrbref = (vrdref*cos(theta_vin-2.0944) - vrqref*sin(theta_vin-2.0944))/Vdc;
+	vrcref = (vrdref*cos(theta_vin+2.0944) - vrqref*sin(theta_vin+2.0944))/Vdc;
+
+	////////////////////////////////////////////////////////////////////////
+	//zero-sequence calculation and injection
+	////////////////////////////////////////////////////////////////////////
+	if (vraref > vrbref && vraref > vrcref && vrcref < vrbref) {sector = 1;}
+	else if (vrbref > vraref && vrbref > vrcref && vrcref < vraref) {sector = 2;}
+	else if (vrbref > vraref && vrbref > vrcref && vraref < vrcref) {sector = 3;}
+	else if (vrcref > vraref && vrcref > vrbref && vraref < vrbref) {sector = 4;}
+	else if (vrcref > vraref && vrcref > vrbref && vrbref < vraref) {sector = 5;}
+	else if (vraref > vrbref && vraref > vrcref && vrbref < vrcref) {sector = 6;}
+
+	if (sector == 1){
+		if (!(deltaVnp*ia > 0) && !(deltaVnp*ic > 0)){vz_npc = -vrbref;}
+		if (!(deltaVnp*ia > 0) &&  (deltaVnp*ic > 0)){vz_npc = 1-vraref;}
+		if ( (deltaVnp*ia > 0) && !(deltaVnp*ic > 0)){vz_npc = -1-vrcref;}
+		if ( (deltaVnp*ia > 0) &&  (deltaVnp*ic > 0)){
+			if (vrbref > 0){vz_npc = 1-vraref;}
+			else {vz_npc = -1-vrcref;}}
+	}
+	else if (sector == 2){
+		if (!(deltaVnp*ib > 0) && !(deltaVnp*ic > 0)){vz_npc = -vraref;}
+		if (!(deltaVnp*ib > 0) &&  (deltaVnp*ic > 0)){vz_npc = 1-vrbref;}
+		if ( (deltaVnp*ib > 0) && !(deltaVnp*ic > 0)){vz_npc = -1-vrcref;}
+		if ( (deltaVnp*ib > 0) &&  (deltaVnp*ic > 0)){
+			if (vraref > 0){vz_npc = 1-vrbref;}
+			else {vz_npc = -1-vrcref;}}
+	}
+	else if (sector == 3){
+		if (!(deltaVnp*ib > 0) && !(deltaVnp*ia > 0)){vz_npc = -vrcref;}
+		if (!(deltaVnp*ib > 0) &&  (deltaVnp*ia > 0)){vz_npc = 1-vrbref;}
+		if ( (deltaVnp*ib > 0) && !(deltaVnp*ia > 0)){vz_npc = -1-vraref;}
+		if ( (deltaVnp*ib > 0) &&  (deltaVnp*ia > 0)){
+			if (vrcref > 0){vz_npc = 1-vrbref;}
+			else {vz_npc = -1-vraref;}}
+	}
+	else if (sector == 4){
+		if (!(deltaVnp*ia > 0) && !(deltaVnp*ic > 0)){vz_npc = -vrbref;}
+		if (!(deltaVnp*ia > 0) &&  (deltaVnp*ic > 0)){vz_npc = -1-vraref;}
+		if ( (deltaVnp*ia > 0) && !(deltaVnp*ic > 0)){vz_npc = 1-vrcref;}
+		if ( (deltaVnp*ia > 0) &&  (deltaVnp*ic > 0)){
+			if (vrbref > 0){vz_npc = 1-vrcref;}
+			else {vz_npc = -1-vraref;}}
+	}
+	else if (sector == 5){
+		if (!(deltaVnp*ib > 0) && !(deltaVnp*ic > 0)){vz_npc = -vraref;}
+		if (!(deltaVnp*ib > 0) &&  (deltaVnp*ic > 0)){vz_npc = -1-vrbref;}
+		if ( (deltaVnp*ib > 0) && !(deltaVnp*ic > 0)){vz_npc = 1-vrcref;}
+		if ( (deltaVnp*ib > 0) &&  (deltaVnp*ic > 0)){
+			if (vraref > 0){vz_npc = 1-vrcref;}
+			else {vz_npc = -1-vrbref;}}
+	}
+	else if (sector == 6){
+		if (!(deltaVnp*ib > 0) && !(deltaVnp*ia > 0)){vz_npc = -vrcref;}
+		if (!(deltaVnp*ib > 0) &&  (deltaVnp*ia > 0)){vz_npc = -1-vrbref;}
+		if ( (deltaVnp*ib > 0) && !(deltaVnp*ia > 0)){vz_npc = 1-vraref;}
+		if ( (deltaVnp*ib > 0) &&  (deltaVnp*ia > 0)){
+			if (vrcref > 0){vz_npc = 1-vraref;}
+			else {vz_npc = -1-vrbref;}}
+	}
+
+	//PWM
+	dra = 0.5*(vraref)+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
+	drb = 0.5*(vrbref)+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
+	drc = 0.5*(vrcref)+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
+
+
+	// TEST CODE FOR BENCHTOP TESTING OF UPDOWN PWM
+//	Vdc = 200;
+//	vraref = 75*cos(theta_vout);
+//	vrbref = 75*cos(theta_vout-2.0944);
+//	vrcref = 75*cos(theta_vout+2.0944);
+
+
+	//dra, drb, drc are [0,1] duty cycles
+	SetPWM_Na1((dra-0.5)*PWM_PD); //vertical shift by -1 to enable PWM clamping
+	SetPWM_Na2((dra+0.5)*PWM_PD);
+
+	SetPWM_Nb1((drb-0.5)*PWM_PD);
+	SetPWM_Nb2((drb+0.5)*PWM_PD);
+
+	SetPWM_Nc1((drc-0.5)*PWM_PD);
+	SetPWM_Nc2((drc+0.5)*PWM_PD);
+
+/////////////////////////////////////////END OF NPC CODE///////////////////////////////////////////
+#endif
 
 
 
@@ -586,7 +797,7 @@ else
 	ClearDO_10(); //clear output, square wave should be at 5k for 10kHz ISR (toggling is at 10k)
 	return;
 }
-//#endif
+
 
 
 
