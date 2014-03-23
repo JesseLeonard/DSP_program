@@ -21,10 +21,10 @@
  */
 
 
-//#define rk1b2b
+#define rk1b2b
 //#define rk2b2b
-//#define b2b
-#define npc
+#define b2b
+//#define npc
 
 
 /*
@@ -757,6 +757,9 @@ else
 
 
 	// TEST CODE FOR BENCHTOP TESTING OF UPDOWN PWM
+//	theta_vout = theta_vout + w_inv*T;
+//	if (theta_vout > 6.28319)
+//		{theta_vout = theta_vout - 6.28319;}
 //	Vdc = 200;
 //	vraref = 75*cos(theta_vout);
 //	vrbref = 75*cos(theta_vout-2.0944);
