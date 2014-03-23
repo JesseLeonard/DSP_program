@@ -20,13 +20,12 @@
  * *****************************************************************************
  */
 
-#define b2b
-#define rk1b2b
-//#define rk2b2b
 
-//#define npc
-//#define rk1npc
-//#define rk2npc
+//#define rk1b2b
+//#define rk2b2b
+//#define b2b
+#define npc
+
 
 /*
  * Revisions
@@ -293,7 +292,7 @@ volatile float32 Vpi = 14.3; //28.57738 ;
 //Timer interrupt.  The frequency is linked to the PWM 1 interrupt
 /////////////////////////////////////////ISR///////////////////////////////////////////
 
-#ifdef b2b
+//#ifdef b2b
 interrupt void timer_isr(void)
 {
 
@@ -316,25 +315,27 @@ interrupt void timer_isr(void)
 
 /////////////////////////////////////////REC///////////////////////////////////////////
 
-//	vab = 0.0915*(GetAIN_B0()-2048); //  0.05227 = 1/[1/R1*2.5*R2*1.5*2048/10]
-//	vbc = 0.0915*(GetAIN_B1()-2048); //  0.05227 = 1/[1/R1*2.5*R2*1.5*2048/10]
 
-//	vab = 0.1705*(GetAIN_B0()-2048);
-//	vbc = 0.1705*(GetAIN_B1()-2048);
+	////////////////////////////////////////////////////////////////////////
+	//input current and DC link voltage measurements
+	////////////////////////////////////////////////////////////////////////
 
-//	ia = 0.0086172*(GetAIN_B2()-2048); //  0.011822 = 1/[R2/1000*1.57*2048/10]
-	ia = 0.011822*(GetAIN_B2()-2048); //  0.011822 = 1/[R2/1000*1.57*2048/10]
-	ib = 0.011822*(GetAIN_B3()-2048); //  0.011822 = 1/[R2/1000*1.57*2048/10]
-	ic = 0.011822*(GetAIN_B4()-2048); //  0.011822 = 1/[R2/1000*1.57*2048/10]
+	ia = 0.01723*(GetAIN_B2()-2048); //  0.01723 = 1/[1/1000*178.5*0.2382*2048/1.5]
+	ib = 0.01723*(GetAIN_B3()-2048); //  0.01723 = 1/[1/1000*178.5*0.2382*2048/1.5]
+	ic = 0.01723*(GetAIN_B4()-2048); //  0.01723 = 1/[1/1000*178.5*0.2382*2048/1.5]
 
-	Vdc = 0.2687*(GetAIN_B5()-2048); // 0.1313 = 1/[1/R1*2.5*R2*1.5*2048/10]
+	Vdc = 0.2687*(GetAIN_B5()-2048); // 0.2687 = 1/[1/39k*2.5*178.5*0.2382*2048/1.5]
 
 	////////////////////////////////////////////////////////////////////////
 	//input voltage L-L --> L-N
 	////////////////////////////////////////////////////////////////////////
-//	va = 0.333333 * ( 2*vab+vbc);  //(GetAIN_B0()-2048)+(GetAIN_B1()-2048) ) ;
-//	vb = 0.333333 * ( vbc-vab);    //GetAIN_B1()-GetAIN_B0() ) ;
-//	vc = 0.333333 * ( -vab-2*vbc); //0172343 * ( -(GetAIN_B0()-2048)-2*(GetAIN_B1()-2048) ) ;
+
+//	vab = 0.1705*(GetAIN_B0()-2048); //  0.1705 = 1/[1/24.75k*2.5*178.5*0.2382*2048/1.5]
+//	vbc = 0.1705*(GetAIN_B1()-2048); //  0.1705 = 1/[1/24.75k*2.5*178.5*0.2382*2048/1.5]
+
+//	va = 0.333333 * ( 2*vab+vbc);
+//	vb = 0.333333 * ( vbc-vab);
+//	vc = 0.333333 * ( -vab-2*vbc);
 
 	va = 0.1705*(GetAIN_B0()-2048);
 	vb = 0.1705*(GetAIN_B1()-2048);
@@ -460,9 +461,9 @@ else
 	////////////////////////////////////////////////////////////////////////
 	//RTDS voltage references
 	////////////////////////////////////////////////////////////////////////
-	viaref_rtds = 0.1354*(GetAIN_B7()-2048);
-	vibref_rtds = 0.1354*(GetAIN_A5()-2048);
-	vicref_rtds = 0.1354*(GetAIN_A7()-2048);
+	viaref_rtds = 0.1354*(GetAIN_B7()-2048);  //scale factor depends on scaling for GTAO too
+	vibref_rtds = 0.1354*(GetAIN_A5()-2048);  //scale factor depends on scaling for GTAO too
+	vicref_rtds = 0.1354*(GetAIN_A7()-2048);  //scale factor depends on scaling for GTAO too
 
 
 	theta_vout = theta_vout + w_inv*T;
@@ -472,9 +473,12 @@ else
 	//	 t_inv = 0;
 		 }
 
-	via = 0.05227*(GetAIN_A0()-2048);
-	vib = 0.05227*(GetAIN_A1()-2048);
-	vic = 0.05227*(GetAIN_A6()-2048);
+	////////////////////////////////////////////////////////////////////////
+	//output voltage measurement across LC filter capacitors
+	////////////////////////////////////////////////////////////////////////
+	via = 0.1705*(GetAIN_A0()-2048); // 0.1705 = 1/[1/24.75k*2.5*178.5*0.2382*2048/1.5]
+	vib = 0.1705*(GetAIN_A1()-2048); // 0.1705 = 1/[1/24.75k*2.5*178.5*0.2382*2048/1.5]
+	vic = 0.1705*(GetAIN_A6()-2048); // 0.1705 = 1/[1/24.75k*2.5*178.5*0.2382*2048/1.5]
 
 	////////////////////////////////////////////////////////////////////////
 	//measured voltage abc-->dq
@@ -486,6 +490,14 @@ else
 //if INV is enabled from CANbus control, perform Vd, Vq PI loops, else reset the loops
 if(INVenable == 1)
 {
+	////////////////////////////////////////////////////////////////////////
+	//ramp INV output voltage
+	////////////////////////////////////////////////////////////////////////
+	if(vidref<170)
+	{vidref = vidref + 0.00283;}
+	else
+	{vidref = 170;}
+
 	////////////////////////////////////////////////////////////////////////
 	//output voltage dq PI loops
 	////////////////////////////////////////////////////////////////////////
@@ -506,6 +518,9 @@ if(INVenable == 1)
 }
 else
 {
+	//for ramp
+	vidref = 10;
+
 	e_vid = 0;
 	u_vid = 0;
 	e_vidn1 = 0;
@@ -521,14 +536,14 @@ else
 	//dq->abc inverse transform for vd, vq references
 	////////////////////////////////////////////////////////////////////////
 	/* closed loop references */
-//	viaref = u_vid*cos(theta_vout) - u_viq*sin(theta_vout);
-//	vibref = u_vid*cos(theta_vout-2.0944) - u_viq*sin(theta_vout-2.0944);
-//	vicref = u_vid*cos(theta_vout+2.0944) - u_viq*sin(theta_vout+2.0944);
+	viaref = u_vid*cos(theta_vout) - u_viq*sin(theta_vout);
+	vibref = u_vid*cos(theta_vout-2.0944) - u_viq*sin(theta_vout-2.0944);
+	vicref = u_vid*cos(theta_vout+2.0944) - u_viq*sin(theta_vout+2.0944);
 
 	/* open loop references */
-	viaref = 70*cos(theta_vout);// - viqref*sin(theta_vout);
-	vibref = 70*cos(theta_vout-2.0944);// - viqref*sin(theta_vout-2.0944);
-	vicref = 70*cos(theta_vout+2.0944);// - viqref*sin(theta_vout+2.0944);
+//	viaref = 170*cos(theta_vout);// - viqref*sin(theta_vout);
+//	vibref = 170*cos(theta_vout-2.0944);// - viqref*sin(theta_vout-2.0944);
+//	vicref = 170*cos(theta_vout+2.0944);// - viqref*sin(theta_vout+2.0944);
 
 	/* rtds open loop references */
 //	viaref = viaref_rtds;
@@ -571,7 +586,7 @@ else
 	ClearDO_10(); //clear output, square wave should be at 5k for 10kHz ISR (toggling is at 10k)
 	return;
 }
-#endif
+//#endif
 
 
 
@@ -592,7 +607,8 @@ void main(void)
 
     //Setup mailbox 1 for AFE PWM enable Message ID = 0x10000000
     //read byte 0 for 1 or 0
-	ECanaMboxes.MBOX1.MSGID.all = 0x10000000; // message Identifier
+#ifdef rk1b2b
+    ECanaMboxes.MBOX1.MSGID.all = 0x10000000; // message Identifier
 	ECanaMboxes.MBOX1.MSGID.bit.IDE = 1; //extended identifier
 	//set mailbox as receive
 	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
@@ -615,11 +631,40 @@ void main(void)
 	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
 	ECanaShadow.CANME.bit.ME2 = 1;
 	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+#endif
 
+	//change message IDs for rack 2 b2b PWM enables
+#ifdef rk2b2b
+    ECanaMboxes.MBOX1.MSGID.all = 0x10000002; // message Identifier
+	ECanaMboxes.MBOX1.MSGID.bit.IDE = 1; //extended identifier
+	//set mailbox as receive
+	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
+	ECanaShadow.CANMD.bit.MD1 = 1;  //mailbox direction to receive
+	ECanaRegs.CANMD.all = ECanaShadow.CANMD.all;
+	//enable mailbox
+	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
+	ECanaShadow.CANME.bit.ME1 = 1;
+	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+
+    //Setup mailbox 2 for INV PWM enable Message ID = 0x10000001
+    //read byte 0 for 1 or 0
+	ECanaMboxes.MBOX2.MSGID.all = 0x10000003; // message Identifier
+	ECanaMboxes.MBOX2.MSGID.bit.IDE = 1; //extended identifier
+	//set mailbox as receive
+	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
+	ECanaShadow.CANMD.bit.MD2 = 1;  //mailbox direction to receive
+	ECanaRegs.CANMD.all = ECanaShadow.CANMD.all;
+	//enable mailbox
+	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
+	ECanaShadow.CANME.bit.ME2 = 1;
+	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+#endif
 
 	StartTimer();
 	while(1)
 	{
+
+#ifdef b2b
 		////////////////////////////////////////////
 		//AFE enable signal from CANbus
 		////////////////////////////////////////////
@@ -650,7 +695,7 @@ void main(void)
 		else
 			{DisablePWM_I();}
 
-
+		//DAC outputs for b2b converters
 
 		V[0] = 0;
 		V[1] = GetAIN_A0()*0.00073242 ; //(3/4096)/0.051703046561388 ; //VaINV
@@ -665,6 +710,25 @@ void main(void)
 		V[3] = GetAIN_A4()*0.00073242 ; //(3/4096)/0.006152662540805 ; //IoINVc  0.006153
 
 		SetAll_AO(V);
+#endif
+
+		//DAC outputs for NPC
+#ifdef npc
+		V[0] = 0;
+		V[1] = GetAIN_A0()*0.00073242 ; //(3/4096)/0.051703046561388 ; //Vdc1
+		V[2] = GetAIN_A1()*0.00073242 ; //(3/4096)/0.011693505697301 ; //Vdc2
+		V[3] = GetAIN_A2()*0.00073242 ; //(3/4096)/0.124087311747332 ; //Idc+
+
+		SetAll_AO(V);
+
+		V[0] = 3;
+		V[1] = GetAIN_B2()*0.00073242 ; //(3/4096)/0.051703046561388 ; //Ia
+		V[2] = GetAIN_B3()*0.00073242 ; //(3/4096)/0.008617174426898 ; //Ib
+		V[3] = GetAIN_B4()*0.00073242 ; //(3/4096)/0.006152662540805 ; //Ic
+
+		SetAll_AO(V);
+#endif
+
 	}
 }						
 
