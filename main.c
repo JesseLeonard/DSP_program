@@ -21,10 +21,12 @@
  */
 
 
-#define rk1b2b
+//#define rk1b2b
 //#define rk2b2b
-#define b2b
-//#define npc
+//#define b2b
+#define rk1npc
+//#define rk2npc
+#define npc
 
 
 /*
@@ -628,7 +630,7 @@ else
 	irq = 0.666667*(-ia*sin(theta_vin) - ib*sin(theta_vin-2.0944) - ic*sin(theta_vin+2.0944)) ;
 
 
-//if AFE is enabled from CANbus control, perform Vdc, ird, irq PI loops, else reset the loops
+//if NPC is enabled from CANbus control, perform Vdc, ird, irq PI loops, else reset the loops
 if(NPCenable == 1)
 {
 	////////////////////////////////////////////////////////////////////
@@ -750,10 +752,9 @@ else
 			else {vz_npc = -1-vrbref;}}
 	}
 
-	//PWM
-	dra = 0.5*(vraref)+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
-	drb = 0.5*(vrbref)+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
-	drc = 0.5*(vrcref)+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
+//	vraref = vraref + vz_npc;
+//	vrbref = vrbref + vz_npc;
+//	vrcref = vrcref + vz_npc;
 
 
 	// TEST CODE FOR BENCHTOP TESTING OF UPDOWN PWM
@@ -761,9 +762,16 @@ else
 //	if (theta_vout > 6.28319)
 //		{theta_vout = theta_vout - 6.28319;}
 //	Vdc = 200;
-//	vraref = 75*cos(theta_vout);
-//	vrbref = 75*cos(theta_vout-2.0944);
-//	vrcref = 75*cos(theta_vout+2.0944);
+//	vraref = 1*cos(theta_vout);
+//	vrbref = 1*cos(theta_vout-2.0944);
+//	vrcref = 1*cos(theta_vout+2.0944);
+
+
+	//PWM
+	dra = 0.5*(vraref)+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
+	drb = 0.5*(vrbref)+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
+	drc = 0.5*(vrcref)+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
+
 
 
 	//dra, drb, drc are [0,1] duty cycles
@@ -860,7 +868,7 @@ void main(void)
 	ECanaShadow.CANME.bit.ME1 = 1;
 	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
 
-    //Setup mailbox 2 for INV PWM enable Message ID = 0x10000001
+    //Setup mailbox 2 for INV PWM enable Message ID = 0x10000003
     //read byte 0 for 1 or 0
 	ECanaMboxes.MBOX2.MSGID.all = 0x10000003; // message Identifier
 	ECanaMboxes.MBOX2.MSGID.bit.IDE = 1; //extended identifier
@@ -871,6 +879,36 @@ void main(void)
 	//enable mailbox
 	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
 	ECanaShadow.CANME.bit.ME2 = 1;
+	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+#endif
+
+#ifdef rk1npc
+    //Setup mailbox 1 for NPC PWM enable Message ID = 0x10000004
+    //read byte 0 for 1 or 0
+    ECanaMboxes.MBOX1.MSGID.all = 0x10000004; // message Identifier
+	ECanaMboxes.MBOX1.MSGID.bit.IDE = 1; //extended identifier
+	//set mailbox as receive
+	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
+	ECanaShadow.CANMD.bit.MD1 = 1;  //mailbox direction to receive
+	ECanaRegs.CANMD.all = ECanaShadow.CANMD.all;
+	//enable mailbox
+	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
+	ECanaShadow.CANME.bit.ME1 = 1;
+	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+#endif
+
+#ifdef rk2npc
+    //Setup mailbox 1 for NPC PWM enable Message ID = 0x10000005
+    //read byte 0 for 1 or 0
+    ECanaMboxes.MBOX1.MSGID.all = 0x10000005; // message Identifier
+	ECanaMboxes.MBOX1.MSGID.bit.IDE = 1; //extended identifier
+	//set mailbox as receive
+	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
+	ECanaShadow.CANMD.bit.MD1 = 1;  //mailbox direction to receive
+	ECanaRegs.CANMD.all = ECanaShadow.CANMD.all;
+	//enable mailbox
+	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
+	ECanaShadow.CANME.bit.ME1 = 1;
 	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
 #endif
 
@@ -926,8 +964,26 @@ void main(void)
 		SetAll_AO(V);
 #endif
 
-		//DAC outputs for NPC
+
 #ifdef npc
+		////////////////////////////////////////////
+		//NPC enable signal from CANbus
+		////////////////////////////////////////////
+		if(ECanaRegs.CANRMP.bit.RMP1 == 1)  //valid new data in MBX1?
+		{
+			NPCenable = ECanaMboxes.MBOX1.MDL.byte.BYTE0; //read message
+			ECanaShadow.CANRMP.bit.RMP1 = 1;  //clear status flag RMP1
+			ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+		}
+
+		if(NPCenable == 1)
+			{EnablePWM_R();
+			 EnablePWM_I();}
+		else
+			{DisablePWM_R();
+			 DisablePWM_I();}
+
+		//DAC outputs for NPC
 		V[0] = 0;
 		V[1] = GetAIN_A0()*0.00073242 ; //(3/4096)/0.051703046561388 ; //Vdc1
 		V[2] = GetAIN_A1()*0.00073242 ; //(3/4096)/0.011693505697301 ; //Vdc2
