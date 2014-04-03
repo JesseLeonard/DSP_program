@@ -768,21 +768,23 @@ else
 
 
 	//PWM
-	dra = 0.5*(vraref)+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
-	drb = 0.5*(vrbref)+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
-	drc = 0.5*(vrcref)+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
+//	dra = 0.5*(vraref)+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
+//	drb = 0.5*(vrbref)+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
+//	drc = 0.5*(vrcref)+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
 
-
+	dra = vraref;
+	drb = vrbref;
+	drc = vrcref;
 
 	//dra, drb, drc are [0,1] duty cycles
-	SetPWM_Na1((dra-0.5)*PWM_PD); //vertical shift by -1 to enable PWM clamping
-	SetPWM_Na2((dra+0.5)*PWM_PD);
+	SetPWM_Na1((dra)*PWM_PD); //vertical shift by -1 to enable PWM clamping
+	SetPWM_Na2((dra+1.0)*PWM_PD);
 
-	SetPWM_Nb1((drb-0.5)*PWM_PD);
-	SetPWM_Nb2((drb+0.5)*PWM_PD);
+	SetPWM_Nb1((drb)*PWM_PD);
+	SetPWM_Nb2((drb+1.0)*PWM_PD);
 
-	SetPWM_Nc1((drc-0.5)*PWM_PD);
-	SetPWM_Nc2((drc+0.5)*PWM_PD);
+	SetPWM_Nc1((drc)*PWM_PD);
+	SetPWM_Nc2((drc+1.0)*PWM_PD);
 
 /////////////////////////////////////////END OF NPC CODE///////////////////////////////////////////
 #endif
