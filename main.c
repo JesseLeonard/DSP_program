@@ -21,12 +21,10 @@
  */
 
 
-//#define rk1b2b
-//#define rk2b2b
-//#define b2b
-#define rk1npc
-//#define rk2npc
-#define npc
+//#define RK1B2B
+//#define RK2B2B
+#define RK1NPC
+//#define RK2NPC
 
 
 /*
@@ -321,7 +319,7 @@ interrupt void timer_isr(void)
 //	PieCtrlRegs.PIEACK.all = PIEACK_GROUP3;
 	StartADC();
 
-#ifdef b2b
+#if defined(RK1B2B) || defined(RK2B2B)
 /////////////////////////////////////////REC///////////////////////////////////////////
 
 
@@ -573,7 +571,7 @@ else
 /////////////////////////////////////////END OF INV CODE///////////////////////////////////////////
 #endif
 
-#ifdef npc
+#if defined(RK1NPC) || defined(RK2NPC)
 /////////////////////////////////////////NPC///////////////////////////////////////////
 
 

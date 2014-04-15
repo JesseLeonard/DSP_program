@@ -367,7 +367,7 @@ inline void DisablePWM_I(){GpioDataRegs.GPBSET.bit.GPIO35 = 1;	}  	//Disables PW
 
 #endif		//End alternative IGBT control.
 
-#ifdef npc
+#if defined(RK1NPC) || (RK2NPC)
 	/*PWM Set Duty Cycle Functions*/
 	void SetPWM_Na1(Uint16 D)	{EPwm1Regs.CMPA.half.CMPA = (Uint16)(D);	}	//PWM1A
 	void SetPWM_Na3(Uint16 D)	{EPwm1Regs.CMPB = (Uint16)(D);				}	//PWM1B
