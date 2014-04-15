@@ -916,7 +916,7 @@ void main(void)
 	while(1)
 	{
 
-#ifdef b2b
+#if defined(RK1B2B) || defined(RK2B2B)
 		////////////////////////////////////////////
 		//AFE enable signal from CANbus
 		////////////////////////////////////////////
@@ -965,7 +965,7 @@ void main(void)
 #endif
 
 
-#ifdef npc
+#if defined(RK1NPC) || defined(RK2NPC)
 		////////////////////////////////////////////
 		//NPC enable signal from CANbus
 		////////////////////////////////////////////
