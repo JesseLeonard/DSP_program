@@ -21,10 +21,10 @@
  */
 
 
-//#define RK1B2B
+#define RK1B2B
 //#define RK2B2B
-#define RK1NPC
-#define RK2NPC
+//#define RK1NPC
+//#define RK2NPC
 
 
 /*
