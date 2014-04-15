@@ -24,7 +24,7 @@
 //#define RK1B2B
 //#define RK2B2B
 #define RK1NPC
-//#define RK2NPC
+#define RK2NPC
 
 
 /*
@@ -829,7 +829,7 @@ void main(void)
 
     //Setup mailbox 1 for AFE PWM enable Message ID = 0x10000000
     //read byte 0 for 1 or 0
-#ifdef rk1b2b
+#ifdef RK1B2B
     ECanaMboxes.MBOX1.MSGID.all = 0x10000000; // message Identifier
 	ECanaMboxes.MBOX1.MSGID.bit.IDE = 1; //extended identifier
 	//set mailbox as receive
@@ -856,7 +856,7 @@ void main(void)
 #endif
 
 	//change message IDs for rack 2 b2b PWM enables
-#ifdef rk2b2b
+#ifdef RK2B2B
     ECanaMboxes.MBOX1.MSGID.all = 0x10000002; // message Identifier
 	ECanaMboxes.MBOX1.MSGID.bit.IDE = 1; //extended identifier
 	//set mailbox as receive
@@ -882,7 +882,7 @@ void main(void)
 	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
 #endif
 
-#ifdef rk1npc
+#ifdef RK1NPC
     //Setup mailbox 1 for NPC PWM enable Message ID = 0x10000004
     //read byte 0 for 1 or 0
     ECanaMboxes.MBOX1.MSGID.all = 0x10000004; // message Identifier
@@ -897,7 +897,7 @@ void main(void)
 	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
 #endif
 
-#ifdef rk2npc
+#ifdef RK2NPC
     //Setup mailbox 1 for NPC PWM enable Message ID = 0x10000005
     //read byte 0 for 1 or 0
     ECanaMboxes.MBOX1.MSGID.all = 0x10000005; // message Identifier

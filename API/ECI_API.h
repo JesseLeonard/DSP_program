@@ -275,7 +275,7 @@ inline void DisablePWM_R(){GpioDataRegs.GPBSET.bit.GPIO34 = 1;	}  	//Disables PW
 inline void DisablePWM_I(){GpioDataRegs.GPBSET.bit.GPIO35 = 1;	}  	//Disables PWM B, Active Low.
 
 //Note: can't have PWM functions if PWM module isn't used.
-#if(MODULATION)
+#if defined(RK1B2B) || defined (RK2B2B) && !defined(RK1NPC) && !defined(RK2NPC)
 	/*PWM Set Duty Cycle Functions*/
 	void SetPWM_Rau(Uint16 D)	{EPwm1Regs.CMPA.half.CMPA = (Uint16)(D);	}	//PWM1A
 	void SetPWM_Rad(Uint16 D)	{EPwm1Regs.CMPB = (Uint16)(D);				}	//PWM1B
@@ -289,7 +289,9 @@ inline void DisablePWM_I(){GpioDataRegs.GPBSET.bit.GPIO35 = 1;	}  	//Disables PW
 	void SetPWM_Ibd(Uint16 D)	{EPwm5Regs.CMPB = (Uint16)(D);				}	//PWM5B
 	void SetPWM_Icu(Uint16 D)	{EPwm6Regs.CMPA.half.CMPA = (Uint16)(D);	}	//PWM6A
 	void SetPWM_Icd(Uint16 D)	{EPwm6Regs.CMPB = (Uint16)(D);				}	//PWM6B
+#endif
 
+#if(MODULATION)
 #else
 	//If PWM is not used, the ports are configured as digital output and use the four functions.
 	
@@ -367,7 +369,7 @@ inline void DisablePWM_I(){GpioDataRegs.GPBSET.bit.GPIO35 = 1;	}  	//Disables PW
 
 #endif		//End alternative IGBT control.
 
-#if defined(RK1NPC) || (RK2NPC)
+#if defined(RK1NPC) || defined(RK2NPC) && !defined(RK1B2B) && !defined(RK2B2B)
 	/*PWM Set Duty Cycle Functions*/
 	void SetPWM_Na1(Uint16 D)	{EPwm1Regs.CMPA.half.CMPA = (Uint16)(D);	}	//PWM1A
 	void SetPWM_Na3(Uint16 D)	{EPwm1Regs.CMPB = (Uint16)(D);				}	//PWM1B
