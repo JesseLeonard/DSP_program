@@ -446,9 +446,14 @@ else
 
 
 	//PWM
-	dra = 0.5*(vraref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
-	drb = 0.5*(vrbref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
-	drc = 0.5*(vrcref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
+//	dra = 0.5*(vraref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
+//	drb = 0.5*(vrbref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
+//	drc = 0.5*(vrcref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
+
+	//test code for testing 3phase interleaved
+	dra = 0.5;
+	drb = 0.5;
+	drc = 0.5;
 
 	//set PWM duty out
 	SetPWM_Rau(dra*PWM_PD);  //dra is [0 1], i.e. percentage of PWM_PD, the clock cycles of PWM period
@@ -923,8 +928,7 @@ void main(void)
 		if(ECanaRegs.CANRMP.bit.RMP1 == 1)  //valid new data in MBX1?
 		{
 			AFEenable = ECanaMboxes.MBOX1.MDL.byte.BYTE0; //read message
-			ECanaShadow.CANRMP.bit.RMP1 = 1;  //clear status flag RMP1
-			ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+			ECanaRegs.CANRMP.bit.RMP1 = 1;  //clear status flag RMP1
 		}
 
 		if(AFEenable == 1)
@@ -938,8 +942,7 @@ void main(void)
 		if(ECanaRegs.CANRMP.bit.RMP2 == 1)  //valid new data in MBX2?
 		{
 			INVenable = ECanaMboxes.MBOX2.MDL.byte.BYTE0; //read message
-			ECanaShadow.CANRMP.bit.RMP2 = 1;  //clear status flag RMP1
-			ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+			ECanaRegs.CANRMP.bit.RMP2 = 1;
 		}
 
 		if(INVenable == 1)

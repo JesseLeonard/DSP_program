@@ -63,7 +63,7 @@
 	#define GPBMUX_2 0x00000000  		//Defines register value for GPBMUX2 when not using SPI.
 #endif
 
-#define PWM_PD 3750		 		//Defines count variable for switching at 10,080. /9.6 kHz/ w/ 150 MHZ SYSCLK.
+#define PWM_PD 7500		 		//Defines count variable for switching at 10,080. /9.6 kHz/ w/ 150 MHZ SYSCLK.
 #define TIMER_0_PD 15000			//Defines timer 0 period. (14881 = ~10,080 Hz).
 #define DEAD_BAND 150				//Defines Dead-band for rising and falling edge (150*1/150Mhz = 1us)
 #define DAC_ADDRESS 0x0C			//I2C address of the DAC.
@@ -602,10 +602,11 @@ void DSP_init()
 	EPwm1Regs.ETPS.bit.INTPRD = ET_1ST;           // Generate INT on 1st event
 
 	EPwm1Regs.TBPRD = PWM_PD;						//Set Switching Frequency.
-	EPwm1Regs.TBCTL.bit.CTRMODE = TB_COUNT_UPDOWN;		//Counter will count up.
+	EPwm1Regs.TBPHS.half.TBPHS = 0;                 //Set phase register to zero
+	EPwm1Regs.TBCTL.bit.CTRMODE = TB_COUNT_UPDOWN;	//symmetrical mode
 	EPwm1Regs.TBCTL.bit.PHSEN = TB_DISABLE;			//Phase Loading Enabled for PWM1.
-	EPwm1Regs.TBCTL.bit.SYNCOSEL = TB_CTR_ZERO;		//Sync output is enabled, sent when cnt -> 0.
 	EPwm1Regs.TBCTL.bit.PRDLD = TB_SHADOW;			//Shadowing enabled, D update on counter = 0.
+	EPwm1Regs.TBCTL.bit.SYNCOSEL = TB_CTR_ZERO;		//Sync output is enabled, sent when cnt -> 0.
 	EPwm1Regs.TBCTL.bit.HSPCLKDIV = TB_DIV1;		//TBCLK = SYSCLK
 	
 	EPwm1Regs.CMPCTL.bit.SHDWAMODE = CC_SHADOW;		//Enable Shadow register for CMPA.
@@ -632,11 +633,15 @@ void DSP_init()
 	
 	//*********PWM 2*********//		
 	EPwm2Regs.TBPRD = PWM_PD;						//Set Switching Frequency.
-	EPwm2Regs.TBCTL.bit.CTRMODE = TB_COUNT_UPDOWN;		//Counter will count up.
+	EPwm2Regs.TBPHS.half.TBPHS = 5000;				//Phase register, it is in phase.
+	EPwm2Regs.TBCTL.bit.CTRMODE = TB_COUNT_UPDOWN;	//Counter will count up.
 	EPwm2Regs.TBCTL.bit.PHSEN = TB_ENABLE;			//Phase Loading Enabled for PWM1.
-	EPwm2Regs.TBPHS.half.TBPHS = 0;					//Phase register, it is in phase.
-	EPwm2Regs.TBCTL.bit.SYNCOSEL = TB_SYNC_IN;		//Sync output is enabled, sent when SYNC_IN is input..
+	EPwm2Regs.TBCTL.bit.PHSDIR = TB_DOWN;           // Count DOWN on sync (=120 deg)
 	EPwm2Regs.TBCTL.bit.PRDLD = TB_SHADOW;			//Shadowing enabled, D update on counter = 0.
+	EPwm2Regs.TBCTL.bit.SYNCOSEL = TB_SYNC_IN;		//Sync output is enabled, sent when SYNC_IN is input..
+
+
+
 	EPwm2Regs.TBCTL.bit.HSPCLKDIV = TB_DIV1;		//TBCLK = SYSCLK
 	
 	EPwm2Regs.CMPCTL.bit.SHDWAMODE = CC_SHADOW;		//Enable Shadow register for CMPA.
