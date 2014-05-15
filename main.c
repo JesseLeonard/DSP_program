@@ -309,12 +309,6 @@ interrupt void timer_isr(void)
 
 
 
-
-
-	float32 Vab, Vbc, Va, Vb, Vc, Vr1, Vr2, Ir1, Ir2, EVp, UVp, EVps, UVps, EVpc, UVpc, EVr, UVr, Ur1, Ur2, wd;
-
-	float32 Vi1, Vi2, Ii1, Ii2, Vi2f, Vi1f, EVi1, EVi2, UVi1, UVi2, Ui1, Ui2, Ui3;
-
 //	PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
 //	PieCtrlRegs.PIEACK.all = PIEACK_GROUP3;
 	StartADC();
@@ -446,14 +440,9 @@ else
 
 
 	//PWM
-//	dra = 0.5*(vraref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
-//	drb = 0.5*(vrbref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
-//	drc = 0.5*(vrcref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
-
-	//test code for testing 3phase interleaved
-	dra = 0.5;
-	drb = 0.5;
-	drc = 0.5;
+	dra = 0.5*(vraref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
+	drb = 0.5*(vrbref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
+	drc = 0.5*(vrcref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
 
 	//set PWM duty out
 	SetPWM_Rau(dra*PWM_PD);  //dra is [0 1], i.e. percentage of PWM_PD, the clock cycles of PWM period
