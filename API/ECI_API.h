@@ -633,10 +633,9 @@ void DSP_init()
 	
 	//*********PWM 2*********//		
 	EPwm2Regs.TBPRD = PWM_PD;						//Set Switching Frequency.
-	EPwm2Regs.TBPHS.half.TBPHS = 5000;				//Phase register
-	EPwm2Regs.TBCTL.bit.CTRMODE = TB_COUNT_UPDOWN;	//Counter will count up.
+	EPwm2Regs.TBPHS.half.TBPHS = 0;				    //Phase register
+	EPwm2Regs.TBCTL.bit.CTRMODE = TB_COUNT_UPDOWN;	//symmetrical mode
 	EPwm2Regs.TBCTL.bit.PHSEN = TB_ENABLE;			//Phase Loading Enabled for PWM1.
-	EPwm2Regs.TBCTL.bit.PHSDIR = TB_DOWN;           // Count DOWN on sync (=120 deg)
 	EPwm2Regs.TBCTL.bit.PRDLD = TB_SHADOW;			//Shadowing enabled, D update on counter = 0.
 	EPwm2Regs.TBCTL.bit.SYNCOSEL = TB_SYNC_IN;		//Sync output is enabled, sent when SYNC_IN is input..
 
@@ -667,10 +666,9 @@ void DSP_init()
 	
 	//*********PWM 3*********//		
 	EPwm3Regs.TBPRD = PWM_PD;						//Set Switching Frequency.
-	EPwm3Regs.TBPHS.half.TBPHS = 5000;				//Phase register
-	EPwm3Regs.TBCTL.bit.CTRMODE = TB_COUNT_UPDOWN;		//Counter will count up.
+	EPwm3Regs.TBPHS.half.TBPHS = 0;				    //Phase register
+	EPwm3Regs.TBCTL.bit.CTRMODE = TB_COUNT_UPDOWN;	//symmetrical mode
 	EPwm3Regs.TBCTL.bit.PHSEN = TB_ENABLE;			//Phase Loading Enabled for PWM1.
-	EPwm3Regs.TBCTL.bit.PHSDIR = TB_UP;             // count UP on synch (=240 deg)
 	EPwm3Regs.TBCTL.bit.PRDLD = TB_SHADOW;			//Shadowing enabled, D update on counter = 0.
 	EPwm3Regs.TBCTL.bit.SYNCOSEL = TB_SYNC_IN;		//Sync output is enabled, sent when SYNC_IN is input..
 
@@ -699,11 +697,12 @@ void DSP_init()
 	
 	//*********PWM 4*********//		
 	EPwm4Regs.TBPRD = PWM_PD;						//Set Switching Frequency.
+	EPwm4Regs.TBPHS.half.TBPHS = 0;					//Phase register, it is in phase.
 	EPwm4Regs.TBCTL.bit.CTRMODE = TB_COUNT_UPDOWN;	//Counter will count up.
 	EPwm4Regs.TBCTL.bit.PHSEN = TB_ENABLE;			//Phase Loading Enabled for PWM1.
-	EPwm4Regs.TBPHS.half.TBPHS = 0;					//Phase register, it is in phase.
-	EPwm4Regs.TBCTL.bit.SYNCOSEL = TB_SYNC_IN;		//Sync output is enabled, sent when SYNC_IN is input..
 	EPwm4Regs.TBCTL.bit.PRDLD = TB_SHADOW;			//Shadowing enabled, D update on counter = 0.
+	EPwm4Regs.TBCTL.bit.SYNCOSEL = TB_SYNC_IN;		//Sync output is enabled, sent when SYNC_IN is input..
+
 	EPwm4Regs.TBCTL.bit.HSPCLKDIV = TB_DIV1;		//TBCLK = SYSCLK
 	
 	EPwm4Regs.CMPCTL.bit.SHDWAMODE = CC_SHADOW;		//Enable Shadow register for CMPA.
@@ -729,9 +728,11 @@ void DSP_init()
 	
 	//*********PWM 5*********//		
 	EPwm5Regs.TBPRD = PWM_PD;						//Set Switching Frequency.
-	EPwm5Regs.TBCTL.bit.CTRMODE = TB_COUNT_UPDOWN;	//Counter will count up.
+	EPwm5Regs.TBPHS.half.TBPHS = 5000;				//Phase register, it is in phase.
+	EPwm5Regs.TBCTL.bit.CTRMODE = TB_COUNT_UPDOWN;	//symmetrical mode
 	EPwm5Regs.TBCTL.bit.PHSEN = TB_ENABLE;			//Phase Loading Enabled for PWM1.
-	EPwm5Regs.TBPHS.half.TBPHS = 0;					//Phase register, it is in phase.
+	EPwm5Regs.TBCTL.bit.PHSDIR = TB_DOWN;           //Count DOWN on sync (=120 deg)
+
 	EPwm5Regs.TBCTL.bit.SYNCOSEL = TB_SYNC_IN;		//Sync output is enabled, sent when SYNC_IN is input..
 	EPwm5Regs.TBCTL.bit.PRDLD = TB_SHADOW;			//Shadowing enabled, D update on counter = 0.
 	EPwm5Regs.TBCTL.bit.HSPCLKDIV = TB_DIV1;		//TBCLK = SYSCLK
@@ -759,11 +760,13 @@ void DSP_init()
 	
 	//*********PWM 6*********//		
 	EPwm6Regs.TBPRD = PWM_PD;						//Set Switching Frequency.
+	EPwm6Regs.TBPHS.half.TBPHS = 5000;					//Phase register, it is in phase.
 	EPwm6Regs.TBCTL.bit.CTRMODE = TB_COUNT_UPDOWN;	//Counter will count up.
 	EPwm6Regs.TBCTL.bit.PHSEN = TB_ENABLE;			//Phase Loading Enabled for PWM1.
-	EPwm6Regs.TBPHS.half.TBPHS = 0;					//Phase register, it is in phase.
-	EPwm6Regs.TBCTL.bit.SYNCOSEL = TB_DISABLE;		//Sync output is disabled on PWM6.
+	EPwm6Regs.TBCTL.bit.PHSDIR = TB_UP;             //count UP on sync (=240 deg)
 	EPwm6Regs.TBCTL.bit.PRDLD = TB_SHADOW;			//Shadowing enabled, D update on counter = 0.
+	EPwm6Regs.TBCTL.bit.SYNCOSEL = TB_DISABLE;		//Sync output is disabled on PWM6.
+
 	EPwm6Regs.TBCTL.bit.HSPCLKDIV = TB_DIV1;		//TBCLK = SYSCLK
 	
 	EPwm6Regs.CMPCTL.bit.SHDWAMODE = CC_SHADOW;		//Enable Shadow register for CMPA.
