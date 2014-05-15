@@ -139,7 +139,7 @@ void SetAll_AO(float32 *V)
 
 //////////////////////////////////Beginning of Jesse's added variables 8/27/2013//////////////////////////
 
-volatile float32 T = 0.00005;   //sample time = 1/10k = 0.0001 for 10kHz ISR (and fsw)
+volatile float32 T = 0.0001;   //sample time = 1/10k = 0.0001 for 10kHz ISR (and fsw)
 int AFEenable = 0;
 int INVenable = 0;
 int NPCenable = 0;
@@ -184,7 +184,7 @@ volatile float32 kp_pll = 10;
 volatile float32 vrqn1 = 0;
 
 //for Vdc PI control, output is idref
-volatile float32 Vdcref = 360; // ***********set Vdc reference here**************
+volatile float32 Vdcref = 400; // ***********set Vdc reference here**************
 
 volatile float32 irdref = 0;  //input current, i, of rectifier, r, for d axis
 volatile float32 irdrefn1 = 0; //idref one delay in the past
