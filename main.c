@@ -97,6 +97,9 @@
 #define PI 3.14159
 
 void SCIA_init(void);
+interrupt void SCIA_TX_isr(void); //SCI-A Transmit interrupt service
+char message[]={"The F28335 - UART ISR is fine !\n\r"}; //global message
+int index = 0;  //global index
 
 void SetAll_AO(float32 *V)
 {
@@ -827,9 +830,13 @@ void main(void)
     InitECanGpio();
     InitECan();
 
+
+    EALLOW;
+    PieVectTable.SCITXINTA = &SCIA_TX_isr;
+    EDIS;
 	SCIA_init();  // Initialize SCI
-	char message[]={"The F28335 - UART is fine !\n\r"};
-	unsigned int index = 0; //pointer into string
+	PieCtrlRegs.PIEIER9.bit.INTx2 = 1; //SCI-A-TX-isr
+	IER = 0x100; //enable INT9 (SCIA-TX):
 
     //Setup mailbox 1 for AFE PWM enable Message ID = 0x10000000
     //read byte 0 for 1 or 0
@@ -917,17 +924,14 @@ void main(void)
 #endif
 
 	StartTimer();
+
+	SciaRegs.SCITXBUF = message[index++]; //send single char
+
 	while(1)
 	{
 
 #if defined(RK1B2B) || defined(RK2B2B)
 
-		SciaRegs.SCITXBUF = message[index++]; //send single char
-		while (SciaRegs.SCICTL2.bit.TXEMPTY == 0); //wait for TX -empty
-
-		if (message[index] == '\0'){
-			index = 0;
-		}
 
 
 
@@ -1015,7 +1019,7 @@ void main(void)
 }						
 
 
-//from Frank Bormann's module #9 lab 1 on SCI for F28335
+//from Frank Bormann's module #9 lab 2 on SCI for F28335
 void SCIA_init()
 {
    	SciaRegs.SCICCR.all =0x0027;   	// 1 stop bit,  No loopback
@@ -1029,5 +1033,25 @@ void SCIA_init()
 	// BRR = 487  gives 9605 Baud
 	SciaRegs.SCIHBAUD    = 487 >> 8;		// Highbyte
 	SciaRegs.SCILBAUD    = 487 & 0x00FF;	// Lowbyte
+
+	SciaRegs.SCICTL2.bit.TXINTENA = 1; // enable SCI-A Tx-ISR
+
 	SciaRegs.SCICTL1.all = 0x0023;	// Relinquish SCI from Reset
 }
+
+interrupt void SCIA_TX_isr(void)	 // SCI-A Transmit Interrupt Service
+{
+	// test for end of string ('\0'); if not, send next character
+	if (message[index]!= '\0'	){
+		SciaRegs.SCITXBUF= message[index++];}
+	else{
+		index = 0;
+		SciaRegs.SCITXBUF= message[index++];
+	}
+
+
+	// Acknowledge this interrupt to receive more interrupts from group 9
+    PieCtrlRegs.PIEACK.all = PIEACK_GROUP9;
+}
+
+
