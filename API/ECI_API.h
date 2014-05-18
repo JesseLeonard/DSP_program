@@ -490,6 +490,9 @@ void DSP_init()
 	GpioCtrlRegs.GPBQSEL1.bit.GPIO32 = 3;  // Asynch input GPIO32 (SDAA)
     GpioCtrlRegs.GPBQSEL1.bit.GPIO33 = 3;  // Asynch input GPIO33 (SCLA)
 	
+    //For SCI:
+	GpioCtrlRegs.GPAMUX2.bit.GPIO28 = 1;	// SCIRXDA
+	GpioCtrlRegs.GPAMUX2.bit.GPIO29 = 1;	// SCITXDA
 	
 	//*****************************************************************************
 	/*Digital I/O Setup.

@@ -96,6 +96,8 @@
 
 #define PI 3.14159
 
+void SCIA_init(void);
+
 void SetAll_AO(float32 *V)
 {
     Uint16 DacVal[4];
@@ -825,6 +827,10 @@ void main(void)
     InitECanGpio();
     InitECan();
 
+	SCIA_init();  // Initialize SCI
+	char message[]={"The F28335 - UART is fine !\n\r"};
+	unsigned int index = 0; //pointer into string
+
     //Setup mailbox 1 for AFE PWM enable Message ID = 0x10000000
     //read byte 0 for 1 or 0
 #ifdef RK1B2B
@@ -915,6 +921,16 @@ void main(void)
 	{
 
 #if defined(RK1B2B) || defined(RK2B2B)
+
+		SciaRegs.SCITXBUF = message[index++]; //send single char
+		while (SciaRegs.SCICTL2.bit.TXEMPTY == 0); //wait for TX -empty
+
+		if (message[index] == '\0'){
+			index = 0;
+		}
+
+
+
 		////////////////////////////////////////////
 		//AFE enable signal from CANbus
 		////////////////////////////////////////////
@@ -950,14 +966,14 @@ void main(void)
 		V[2] = GetAIN_A1()*0.00073242 ; //(3/4096)/0.011693505697301 ; //VbINV
 		V[3] = GetAIN_A6()*0.00073242 ; //(3/4096)/0.124087311747332 ; //VcINV
 
-		SetAll_AO(V);
+//		SetAll_AO(V);
 
 		V[0] = 3;
 		V[1] = GetAIN_A2()*0.00073242 ; //(3/4096)/0.051703046561388 ; //IoINVa  0.0931
 		V[2] = GetAIN_A3()*0.00073242 ; //(3/4096)/0.008617174426898 ; //IoINVb  0.006153
 		V[3] = GetAIN_A4()*0.00073242 ; //(3/4096)/0.006152662540805 ; //IoINVc  0.006153
 
-		SetAll_AO(V);
+//		SetAll_AO(V);
 #endif
 
 
@@ -999,6 +1015,19 @@ void main(void)
 }						
 
 
+//from Frank Bormann's module #9 lab 1 on SCI for F28335
+void SCIA_init()
+{
+   	SciaRegs.SCICCR.all =0x0027;   	// 1 stop bit,  No loopback
+                                   	// ODD parity,8 char bits,
+                                   	// async mode, idle-line protocol
+	SciaRegs.SCICTL1.all =0x0003;  	// enable TX, RX, internal SCICLK,
+                                   	// Disable RX ERR, SLEEP, TXWAKE
 
-
-
+	// SYSCLOCKOUT = 150MHz; LSPCLK = 1/4 = 37.5 MHz
+	// BRR = (LSPCLK / (9600 x 8)) -1
+	// BRR = 487  gives 9605 Baud
+	SciaRegs.SCIHBAUD    = 487 >> 8;		// Highbyte
+	SciaRegs.SCILBAUD    = 487 & 0x00FF;	// Lowbyte
+	SciaRegs.SCICTL1.all = 0x0023;	// Relinquish SCI from Reset
+}
