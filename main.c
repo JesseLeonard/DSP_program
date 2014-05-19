@@ -930,6 +930,9 @@ void main(void)
 
 	StartTimer();
 
+	//send startup message
+	SciaRegs.SCIFFTX.bit.TXFIFOXRESET = 1;  // enable TXFIFO
+	SciaRegs.SCIFFTX.bit.TXFFINTCLR = 1 ;  // force TX-ISR
 
 	while(1)
 	{
@@ -1056,7 +1059,7 @@ interrupt void SCIA_TX_isr(void)	 // SCI-A Transmit Interrupt Service
 {
 	unsigned int i;
 	// copy 16 character into SCI-A TX buffer
-	for(i=0;i<16;i++) SciaRegs.SCITXBUF= message[i];
+	for(i=0;i<16;i++) SciaRegs.SCITXBUF= startupmessage[i];
 	// Acknowledge this interrupt to receive more interrupts from group 9
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP9;
 }
