@@ -139,6 +139,9 @@ void SetAll_AO(float32 *V)
 
 //////////////////////////////////Beginning of Jesse's added variables 8/27/2013//////////////////////////
 
+float32 duty_CAN = 0;
+void InitializeCANboxes(void);
+
 volatile float32 T = 0.0001;   //sample time = 1/10k = 0.0001 for 10kHz ISR (and fsw)
 int AFEenable = 0;
 int INVenable = 0;
@@ -557,7 +560,7 @@ else
 	dic = 0.5*(vicref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
 
 	//test code for testing 3phase
-	dia = 0.5; //(200+30*cos(theta_vout))/Vdc;
+	dia = duty_CAN/100.0; //(200+30*cos(theta_vout))/Vdc;
 	dib = dia;
 	dic = dia;
 
@@ -825,33 +828,14 @@ void main(void)
     InitECanGpio();
     InitECan();
 
+	InitializeCANboxes();
 
     //Setup mailbox 1 for AFE PWM enable Message ID = 0x10000000
     //read byte 0 for 1 or 0
 #ifdef RK1B2B
-    ECanaMboxes.MBOX1.MSGID.all = 0x10000000; // message Identifier
-	ECanaMboxes.MBOX1.MSGID.bit.IDE = 1; //extended identifier
-	//set mailbox as receive
-	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
-	ECanaShadow.CANMD.bit.MD1 = 1;  //mailbox direction to receive
-	ECanaRegs.CANMD.all = ECanaShadow.CANMD.all;
-	//enable mailbox
-	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
-	ECanaShadow.CANME.bit.ME1 = 1;
-	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
 
-    //Setup mailbox 2 for INV PWM enable Message ID = 0x10000001
-    //read byte 0 for 1 or 0
-	ECanaMboxes.MBOX2.MSGID.all = 0x10000001; // message Identifier
-	ECanaMboxes.MBOX2.MSGID.bit.IDE = 1; //extended identifier
-	//set mailbox as receive
-	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
-	ECanaShadow.CANMD.bit.MD2 = 1;  //mailbox direction to receive
-	ECanaRegs.CANMD.all = ECanaShadow.CANMD.all;
-	//enable mailbox
-	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
-	ECanaShadow.CANME.bit.ME2 = 1;
-	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+
+
 #endif
 
 	//change message IDs for rack 2 b2b PWM enables
@@ -946,6 +930,15 @@ void main(void)
 		else
 			{DisablePWM_I();}
 
+		////////////////////////////////////////////
+		//INV enable signal from CANbus
+		////////////////////////////////////////////
+		if(ECanaRegs.CANRMP.bit.RMP3 == 1)  //valid new data in MBX3?
+		{
+			duty_CAN = ECanaMboxes.MBOX3.MDL.byte.BYTE0; //read message
+			ECanaRegs.CANRMP.bit.RMP3 = 1;
+		}
+
 		//DAC outputs for b2b converters
 
 		V[0] = 0;
@@ -1000,3 +993,46 @@ void main(void)
 
 	}
 }
+
+void InitializeCANboxes()
+{
+	struct ECAN_REGS ECanaShadow;
+
+	ECanaMboxes.MBOX1.MSGID.all = 0x10000000; // message Identifier
+	ECanaMboxes.MBOX1.MSGID.bit.IDE = 1; //extended identifier
+	//set mailbox as receive
+	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
+	ECanaShadow.CANMD.bit.MD1 = 1;  //mailbox direction to receive
+	ECanaRegs.CANMD.all = ECanaShadow.CANMD.all;
+	//enable mailbox
+	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
+	ECanaShadow.CANME.bit.ME1 = 1;
+	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+
+	//Setup mailbox 2 for INV PWM enable Message ID = 0x10000001
+	//read byte 0 for 1 or 0
+	ECanaMboxes.MBOX2.MSGID.all = 0x10000001; // message Identifier
+	ECanaMboxes.MBOX2.MSGID.bit.IDE = 1; //extended identifier
+	//set mailbox as receive
+	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
+	ECanaShadow.CANMD.bit.MD2 = 1;  //mailbox direction to receive
+	ECanaRegs.CANMD.all = ECanaShadow.CANMD.all;
+	//enable mailbox
+	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
+	ECanaShadow.CANME.bit.ME2 = 1;
+	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+
+	//Setup mailbox 3 for kernel measurement mode
+	//read byte 0 for a 1 2 or 3
+	ECanaMboxes.MBOX3.MSGID.all = 100; // message Identifier
+	ECanaMboxes.MBOX3.MSGID.bit.IDE = 1; //extended identifier
+	//set mailbox as receive
+	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
+	ECanaShadow.CANMD.bit.MD3 = 1;  //mailbox direction to receive
+	ECanaRegs.CANMD.all = ECanaShadow.CANMD.all;
+	//enable mailbox
+	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
+	ECanaShadow.CANME.bit.ME3 = 1;
+	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+}
+
