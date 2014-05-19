@@ -102,6 +102,9 @@ interrupt void SCIA_TX_isr(void); //SCI-A Transmit interrupt service
 interrupt void SCIA_RX_isr(void); //SCI_A Receive interrupt service
 char message[]={" Instruments! \n\r"}; //global message, yes this is 16 chars
 char startupmessage[]={"Hello from DSP\n\r"}; //global DSP startup message, yes this is 16 chars too!
+char placeholder;
+int mynumber;
+char buffer[16];
 
 
 void SetAll_AO(float32 *V)
@@ -1051,6 +1054,7 @@ void SCIA_init()
 	SciaRegs.SCIFFCT.all = 0x0000;	// Set FIFO transfer delay to 0
 
 	SciaRegs.SCIFFRX.all = 0xE065;	// Rx interrupt level = 5
+	SciaRegs.SCIFFRX.bit.RXFFIL = 1;
 
 	SciaRegs.SCICTL1.all = 0x0023;	// Relinquish SCI from Reset
 }
@@ -1067,15 +1071,18 @@ interrupt void SCIA_TX_isr(void)	 // SCI-A Transmit Interrupt Service
 // SCI-A Receive Interrupt Service
 interrupt void SCIA_RX_isr(void)
 {
-	int i;
-	char buffer[16];
-	for (i=0;i<16;i++) buffer[i]= SciaRegs.SCIRXBUF.bit.RXDT;
 
-	if (strncmp(buffer, "Texas", 5) == 0)
-	{
-		SciaRegs.SCIFFTX.bit.TXFIFOXRESET =1;  // enable TXFIFO
-		SciaRegs.SCIFFTX.bit.TXFFINTCLR = 1 ;  // force TX-ISR
-	}
+	int i;
+	mynumber = 0.0;
+//	char buffer[16];
+	for (i=0;i<16;i++) buffer[i] = SciaRegs.SCIRXBUF.bit.RXDT; //* pow(10.0,16-i);
+//	for (i=0;i<16;i++) mynumber = mynumber + (buffer[i]-48);// * pow(10.0,i);
+	mynumber = buffer[0]-48;
+//	if (strncmp(buffer, "Texas", 5) == 0)
+//	{
+//		SciaRegs.SCIFFTX.bit.TXFIFOXRESET =1;  // enable TXFIFO
+//		SciaRegs.SCIFFTX.bit.TXFFINTCLR = 1 ;  // force TX-ISR
+//	}
 
 	SciaRegs.SCIFFRX.bit.RXFIFORESET = 0;	// reset RX-FIFO pointer
 	SciaRegs.SCIFFRX.bit.RXFIFORESET = 1;	// enable RX-operation
