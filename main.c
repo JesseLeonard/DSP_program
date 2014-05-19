@@ -93,13 +93,16 @@
 
 #include <ECI_API.h>
 #include <cmath>
+#include <string.h>
 
 #define PI 3.14159
 
 void SCIA_init(void);
 interrupt void SCIA_TX_isr(void); //SCI-A Transmit interrupt service
-char message[]={"Burst-Transmit\n\r"}; //global message
-int index = 0;  //global index
+interrupt void SCIA_RX_isr(void); //SCI_A Receive interrupt service
+char message[]={" Instruments! \n\r"}; //global message, yes this is 16 chars
+char startupmessage[]={"Hello from DSP\n\r"}; //global DSP startup message, yes this is 16 chars too!
+
 
 void SetAll_AO(float32 *V)
 {
@@ -833,9 +836,11 @@ void main(void)
 
     EALLOW;
     PieVectTable.SCITXINTA = &SCIA_TX_isr;
+    PieVectTable.SCIRXINTA = &SCIA_RX_isr;
     EDIS;
 	SCIA_init();  // Initialize SCI
 	PieCtrlRegs.PIEIER9.bit.INTx2 = 1; //SCI-A-TX-isr
+	PieCtrlRegs.PIEIER9.bit.INTx1 = 1; //SCI-A-RX isr enable
 	IER = 0x100; //enable INT9 (SCIA-TX):
 
     //Setup mailbox 1 for AFE PWM enable Message ID = 0x10000000
@@ -932,7 +937,6 @@ void main(void)
 #if defined(RK1B2B) || defined(RK2B2B)
 
 
-		SciaRegs.SCIFFTX.bit.TXFFINTCLR = 1;	// re-arm Tx - FIFO
 
 		////////////////////////////////////////////
 		//AFE enable signal from CANbus
@@ -1033,7 +1037,8 @@ void SCIA_init()
 	SciaRegs.SCIHBAUD    = 487 >> 8;		// Highbyte
 	SciaRegs.SCILBAUD    = 487 & 0x00FF;	// Lowbyte
 
-	SciaRegs.SCICTL2.bit.TXINTENA = 1; // enable SCI-A Tx-ISR
+	SciaRegs.SCICTL2.bit.TXINTENA = 1; 		// enable SCI-A Tx-ISR
+	SciaRegs.SCICTL2.bit.RXBKINTENA = 1; 	// enable SCI_A Rx-ISR
 
 	SciaRegs.SCIFFTX.all = 0xC060;	// bit 15 = 1 : relinquish from Reset
 									// bit 14 = 1 : Enable FIFO
@@ -1041,7 +1046,8 @@ void SCIA_init()
 									// bit 5 = 1 :  enable TX FIFO match
 									// bit 4-0 :  TX-ISR, if TX FIFO is 0(empty)
 	SciaRegs.SCIFFCT.all = 0x0000;	// Set FIFO transfer delay to 0
-	SciaRegs.SCIFFTX.bit.TXFIFOXRESET = 1;  // re-enable transmit fifo operation
+
+	SciaRegs.SCIFFRX.all = 0xE065;	// Rx interrupt level = 5
 
 	SciaRegs.SCICTL1.all = 0x0023;	// Relinquish SCI from Reset
 }
@@ -1055,4 +1061,21 @@ interrupt void SCIA_TX_isr(void)	 // SCI-A Transmit Interrupt Service
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP9;
 }
 
+// SCI-A Receive Interrupt Service
+interrupt void SCIA_RX_isr(void)
+{
+	int i;
+	char buffer[16];
+	for (i=0;i<16;i++) buffer[i]= SciaRegs.SCIRXBUF.bit.RXDT;
 
+	if (strncmp(buffer, "Texas", 5) == 0)
+	{
+		SciaRegs.SCIFFTX.bit.TXFIFOXRESET =1;  // enable TXFIFO
+		SciaRegs.SCIFFTX.bit.TXFFINTCLR = 1 ;  // force TX-ISR
+	}
+
+	SciaRegs.SCIFFRX.bit.RXFIFORESET = 0;	// reset RX-FIFO pointer
+	SciaRegs.SCIFFRX.bit.RXFIFORESET = 1;	// enable RX-operation
+	SciaRegs.SCIFFRX.bit.RXFFINTCLR = 1;    // clear RX-FIFO INT Flag
+	PieCtrlRegs.PIEACK.all = PIEACK_GROUP9;
+}
