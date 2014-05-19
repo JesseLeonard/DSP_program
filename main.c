@@ -93,19 +93,8 @@
 
 #include <ECI_API.h>
 #include <cmath>
-#include <string.h>
 
 #define PI 3.14159
-
-void SCIA_init(void);
-interrupt void SCIA_TX_isr(void); //SCI-A Transmit interrupt service
-interrupt void SCIA_RX_isr(void); //SCI_A Receive interrupt service
-char message[]={" Instruments! \n\r"}; //global message, yes this is 16 chars
-char startupmessage[]={"Hello from DSP\n\r"}; //global DSP startup message, yes this is 16 chars too!
-char placeholder;
-int mynumber;
-char buffer[16];
-
 
 void SetAll_AO(float32 *V)
 {
@@ -568,7 +557,7 @@ else
 	dic = 0.5*(vicref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
 
 	//test code for testing 3phase
-	dia = (200+30*cos(theta_vout))/Vdc;
+	dia = 0.5; //(200+30*cos(theta_vout))/Vdc;
 	dib = dia;
 	dic = dia;
 
@@ -837,15 +826,6 @@ void main(void)
     InitECan();
 
 
-    EALLOW;
-    PieVectTable.SCITXINTA = &SCIA_TX_isr;
-    PieVectTable.SCIRXINTA = &SCIA_RX_isr;
-    EDIS;
-	SCIA_init();  // Initialize SCI
-	PieCtrlRegs.PIEIER9.bit.INTx2 = 1; //SCI-A-TX-isr
-	PieCtrlRegs.PIEIER9.bit.INTx1 = 1; //SCI-A-RX isr enable
-	IER = 0x100; //enable INT9 (SCIA-TX):
-
     //Setup mailbox 1 for AFE PWM enable Message ID = 0x10000000
     //read byte 0 for 1 or 0
 #ifdef RK1B2B
@@ -933,16 +913,10 @@ void main(void)
 
 	StartTimer();
 
-	//send startup message
-	SciaRegs.SCIFFTX.bit.TXFIFOXRESET = 1;  // enable TXFIFO
-	SciaRegs.SCIFFTX.bit.TXFFINTCLR = 1 ;  // force TX-ISR
-
 	while(1)
 	{
 
 #if defined(RK1B2B) || defined(RK2B2B)
-
-
 
 		////////////////////////////////////////////
 		//AFE enable signal from CANbus
@@ -1025,67 +999,4 @@ void main(void)
 #endif
 
 	}
-}						
-
-
-//from Frank Bormann's module #9 lab 2 on SCI for F28335
-void SCIA_init()
-{
-   	SciaRegs.SCICCR.all =0x0027;   	// 1 stop bit,  No loopback
-                                   	// ODD parity,8 char bits,
-                                   	// async mode, idle-line protocol
-	SciaRegs.SCICTL1.all =0x0003;  	// enable TX, RX, internal SCICLK,
-                                   	// Disable RX ERR, SLEEP, TXWAKE
-
-	// SYSCLOCKOUT = 150MHz; LSPCLK = 1/4 = 37.5 MHz
-	// BRR = (LSPCLK / (9600 x 8)) -1
-	// BRR = 487  gives 9605 Baud
-	SciaRegs.SCIHBAUD    = 487 >> 8;		// Highbyte
-	SciaRegs.SCILBAUD    = 487 & 0x00FF;	// Lowbyte
-
-	SciaRegs.SCICTL2.bit.TXINTENA = 1; 		// enable SCI-A Tx-ISR
-	SciaRegs.SCICTL2.bit.RXBKINTENA = 1; 	// enable SCI_A Rx-ISR
-
-	SciaRegs.SCIFFTX.all = 0xC060;	// bit 15 = 1 : relinquish from Reset
-									// bit 14 = 1 : Enable FIFO
-									// bit 6 = 1 :  CLR TXFFINT-Flag
-									// bit 5 = 1 :  enable TX FIFO match
-									// bit 4-0 :  TX-ISR, if TX FIFO is 0(empty)
-	SciaRegs.SCIFFCT.all = 0x0000;	// Set FIFO transfer delay to 0
-
-	SciaRegs.SCIFFRX.all = 0xE065;	// Rx interrupt level = 5
-	SciaRegs.SCIFFRX.bit.RXFFIL = 1;
-
-	SciaRegs.SCICTL1.all = 0x0023;	// Relinquish SCI from Reset
-}
-
-interrupt void SCIA_TX_isr(void)	 // SCI-A Transmit Interrupt Service
-{
-	unsigned int i;
-	// copy 16 character into SCI-A TX buffer
-	for(i=0;i<16;i++) SciaRegs.SCITXBUF= startupmessage[i];
-	// Acknowledge this interrupt to receive more interrupts from group 9
-    PieCtrlRegs.PIEACK.all = PIEACK_GROUP9;
-}
-
-// SCI-A Receive Interrupt Service
-interrupt void SCIA_RX_isr(void)
-{
-
-	int i;
-	mynumber = 0.0;
-//	char buffer[16];
-	for (i=0;i<16;i++) buffer[i] = SciaRegs.SCIRXBUF.bit.RXDT; //* pow(10.0,16-i);
-//	for (i=0;i<16;i++) mynumber = mynumber + (buffer[i]-48);// * pow(10.0,i);
-	mynumber = buffer[0]-48;
-//	if (strncmp(buffer, "Texas", 5) == 0)
-//	{
-//		SciaRegs.SCIFFTX.bit.TXFIFOXRESET =1;  // enable TXFIFO
-//		SciaRegs.SCIFFTX.bit.TXFFINTCLR = 1 ;  // force TX-ISR
-//	}
-
-	SciaRegs.SCIFFRX.bit.RXFIFORESET = 0;	// reset RX-FIFO pointer
-	SciaRegs.SCIFFRX.bit.RXFIFORESET = 1;	// enable RX-operation
-	SciaRegs.SCIFFRX.bit.RXFFINTCLR = 1;    // clear RX-FIFO INT Flag
-	PieCtrlRegs.PIEACK.all = PIEACK_GROUP9;
 }
