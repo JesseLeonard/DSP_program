@@ -98,7 +98,7 @@
 
 void SCIA_init(void);
 interrupt void SCIA_TX_isr(void); //SCI-A Transmit interrupt service
-char message[]={"The F28335 - UART ISR is fine !\n\r"}; //global message
+char message[]={"Burst-Transmit\n\r"}; //global message
 int index = 0;  //global index
 
 void SetAll_AO(float32 *V)
@@ -925,7 +925,6 @@ void main(void)
 
 	StartTimer();
 
-	SciaRegs.SCITXBUF = message[index++]; //send single char
 
 	while(1)
 	{
@@ -933,7 +932,7 @@ void main(void)
 #if defined(RK1B2B) || defined(RK2B2B)
 
 
-
+		SciaRegs.SCIFFTX.bit.TXFFINTCLR = 1;	// re-arm Tx - FIFO
 
 		////////////////////////////////////////////
 		//AFE enable signal from CANbus
@@ -1036,20 +1035,22 @@ void SCIA_init()
 
 	SciaRegs.SCICTL2.bit.TXINTENA = 1; // enable SCI-A Tx-ISR
 
+	SciaRegs.SCIFFTX.all = 0xC060;	// bit 15 = 1 : relinquish from Reset
+									// bit 14 = 1 : Enable FIFO
+									// bit 6 = 1 :  CLR TXFFINT-Flag
+									// bit 5 = 1 :  enable TX FIFO match
+									// bit 4-0 :  TX-ISR, if TX FIFO is 0(empty)
+	SciaRegs.SCIFFCT.all = 0x0000;	// Set FIFO transfer delay to 0
+	SciaRegs.SCIFFTX.bit.TXFIFOXRESET = 1;  // re-enable transmit fifo operation
+
 	SciaRegs.SCICTL1.all = 0x0023;	// Relinquish SCI from Reset
 }
 
 interrupt void SCIA_TX_isr(void)	 // SCI-A Transmit Interrupt Service
 {
-	// test for end of string ('\0'); if not, send next character
-	if (message[index]!= '\0'	){
-		SciaRegs.SCITXBUF= message[index++];}
-	else{
-		index = 0;
-		SciaRegs.SCITXBUF= message[index++];
-	}
-
-
+	unsigned int i;
+	// copy 16 character into SCI-A TX buffer
+	for(i=0;i<16;i++) SciaRegs.SCITXBUF= message[i];
 	// Acknowledge this interrupt to receive more interrupts from group 9
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP9;
 }
