@@ -234,7 +234,7 @@ volatile float32 vib = 0;
 volatile float32 vic = 0;
 
 volatile float32 theta_vout = 0;
-volatile float32 w_inv = 377;
+volatile float32 w_inv = 31.4;
 
 volatile float32 dia = 0;
 volatile float32 dib = 0;
@@ -562,9 +562,9 @@ else
 	dic = 0.5*(vicref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
 
 	//test code for testing 3phase
-	dia = 0.5;
-	dib = 0.5;
-	dic = 0.5;
+	dia = (200+30*cos(theta_vout))/Vdc;
+	dib = dia;
+	dic = dia;
 
 	//set PWM duty out
 	SetPWM_Iau(dia*PWM_PD);  //dia is [0 1], i.e. percentage of PWM_PD, the clock cycles of PWM period
