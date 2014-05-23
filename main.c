@@ -472,7 +472,7 @@ else
 
 
 //	theta_vout = theta_vout + w_inv*T;
-	theta_vout = theta_vout + 2*PI*excfreq*T;
+	theta_vout = theta_vout + 2.0*PI*excfreq*T;
 	//t_inv = t_inv + T;
 	if (theta_vout > 6.28319)
 		{theta_vout = theta_vout - 6.28319;
@@ -562,7 +562,7 @@ else
 	dic = 0.5*(vicref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
 
 	//test code for testing 3phase
-	dia = duty_CAN/100.0; //(200+30*cos(theta_vout))/Vdc;
+	dia = (200+30*cos(theta_vout))/Vdc;
 	dib = dia;
 	dic = dia;
 
