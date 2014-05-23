@@ -140,6 +140,7 @@ void SetAll_AO(float32 *V)
 //////////////////////////////////Beginning of Jesse's added variables 8/27/2013//////////////////////////
 
 float32 duty_CAN = 0;
+float32 excfreq = 0.0;
 void InitializeCANboxes(void);
 
 volatile float32 T = 0.0001;   //sample time = 1/10k = 0.0001 for 10kHz ISR (and fsw)
@@ -470,7 +471,8 @@ else
 	vicref_rtds = 0.1354*(GetAIN_A7()-2048);  //scale factor depends on scaling for GTAO too
 
 
-	theta_vout = theta_vout + w_inv*T;
+//	theta_vout = theta_vout + w_inv*T;
+	theta_vout = theta_vout + 2*PI*excfreq*T;
 	//t_inv = t_inv + T;
 	if (theta_vout > 6.28319)
 		{theta_vout = theta_vout - 6.28319;
@@ -907,7 +909,7 @@ void main(void)
 		////////////////////////////////////////////
 		if(ECanaRegs.CANRMP.bit.RMP1 == 1)  //valid new data in MBX1?
 		{
-			AFEenable = ECanaMboxes.MBOX1.MDL.byte.BYTE0; //read message
+			AFEenable = ECanaMboxes.MBOX1.MDL.all; //read message
 			ECanaRegs.CANRMP.bit.RMP1 = 1;  //clear status flag RMP1
 		}
 
@@ -921,7 +923,7 @@ void main(void)
 		////////////////////////////////////////////
 		if(ECanaRegs.CANRMP.bit.RMP2 == 1)  //valid new data in MBX2?
 		{
-			INVenable = ECanaMboxes.MBOX2.MDL.byte.BYTE0; //read message
+			INVenable = ECanaMboxes.MBOX2.MDL.all; //read message
 			ECanaRegs.CANRMP.bit.RMP2 = 1;
 		}
 
@@ -931,12 +933,21 @@ void main(void)
 			{DisablePWM_I();}
 
 		////////////////////////////////////////////
-		//INV enable signal from CANbus
+		//duty cycle 0-100 signal from CANbus
 		////////////////////////////////////////////
 		if(ECanaRegs.CANRMP.bit.RMP3 == 1)  //valid new data in MBX3?
 		{
-			duty_CAN = ECanaMboxes.MBOX3.MDL.byte.BYTE0; //read message
+			duty_CAN = ECanaMboxes.MBOX3.MDL.all; //read message
 			ECanaRegs.CANRMP.bit.RMP3 = 1;
+		}
+
+		////////////////////////////////////////////
+		//exciter frequency as float32 from CANbus
+		////////////////////////////////////////////
+		if(ECanaRegs.CANRMP.bit.RMP4 == 1)  //valid new data in MBX3?
+		{
+			excfreq = *(float*)&ECanaMboxes.MBOX4.MDL.all; //read message
+			ECanaRegs.CANRMP.bit.RMP4 = 1;
 		}
 
 		//DAC outputs for b2b converters
@@ -998,6 +1009,13 @@ void InitializeCANboxes()
 {
 	struct ECAN_REGS ECanaShadow;
 
+//	ECanaShadow.CANMC.all = ECanaRegs.CANMC.all;
+//	ECanaShadow.CANMC.bit.DBO = 1;
+//	ECanaRegs.CANMC.all = ECanaShadow.CANMC.all;
+	EALLOW;
+	ECanaRegs.CANMC.bit.DBO = 1;
+	EDIS;
+
 	ECanaMboxes.MBOX1.MSGID.all = 0x10000000; // message Identifier
 	ECanaMboxes.MBOX1.MSGID.bit.IDE = 1; //extended identifier
 	//set mailbox as receive
@@ -1033,6 +1051,19 @@ void InitializeCANboxes()
 	//enable mailbox
 	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
 	ECanaShadow.CANME.bit.ME3 = 1;
+	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+
+	//Setup mailbox 4 for kernel measurement mode
+	//read byte 0 for a 1 2 or 3
+	ECanaMboxes.MBOX4.MSGID.all = 101; // message Identifier
+	ECanaMboxes.MBOX4.MSGID.bit.IDE = 1; //extended identifier
+	//set mailbox as receive
+	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
+	ECanaShadow.CANMD.bit.MD4 = 1;  //mailbox direction to receive
+	ECanaRegs.CANMD.all = ECanaShadow.CANMD.all;
+	//enable mailbox
+	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
+	ECanaShadow.CANME.bit.ME4 = 1;
 	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
 }
 
