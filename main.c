@@ -141,6 +141,8 @@ void SetAll_AO(float32 *V)
 
 float32 duty_CAN = 0;
 float32 excfreq = 0.0;
+float vref, vref_n1, vref_n2;
+float vref_filt, vref_filt_n1, vref_filt_n2;
 void InitializeCANboxes(void);
 
 volatile float32 T = 0.0001;   //sample time = 1/10k = 0.0001 for 10kHz ISR (and fsw)
@@ -561,8 +563,24 @@ else
 	dib = 0.5*(vibref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
 	dic = 0.5*(vicref/(Vdc/2))+0.5; //scale by Vdc then shrink+shift for [-1 1] modulation to [0 1]
 
-	//test code for testing 3phase
-	dia = (200+30*cos(theta_vout))/Vdc;
+	////////////////////////////////////////////////////////////////////////
+	//929Hz notch filter, 10kHz sampling
+	////////////////////////////////////////////////////////////////////////
+	vref = (200+30*cos(theta_vout)); //u of filter
+
+	//y of filter
+	vref_filt = 0.9286*vref - 1.566*vref_n1 + 0.9286*vref_n2 + 1.566*vref_filt_n1 - 0.8573*vref_filt_n2;
+
+	vref_n1 = vref;	//update delayed values
+	vref_n2 = vref_n1;
+
+	vref_filt_n1 = vref_filt;
+	vref_filt_n2 = vref_filt_n1;
+
+	////////////////////////////////////////////////////////////////////////
+	//set duty cycles for each half-bridge
+	////////////////////////////////////////////////////////////////////////
+	dia = vref_filt/Vdc;
 	dib = dia;
 	dic = dia;
 
