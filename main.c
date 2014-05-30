@@ -141,6 +141,7 @@ void SetAll_AO(float32 *V)
 
 float32 duty_CAN = 0;
 float32 excfreq = 0.0;
+float32 excampl = 0.0;
 float vref, vref_n1, vref_n2;
 float vref_filt, vref_filt_n1, vref_filt_n2;
 void InitializeCANboxes(void);
@@ -190,7 +191,7 @@ volatile float32 kp_pll = 10;
 volatile float32 vrqn1 = 0;
 
 //for Vdc PI control, output is idref
-volatile float32 Vdcref = 400; // ***********set Vdc reference here**************
+volatile float32 Vdcref = 470; // ***********set Vdc reference here**************
 
 volatile float32 irdref = 0;  //input current, i, of rectifier, r, for d axis
 volatile float32 irdrefn1 = 0; //idref one delay in the past
@@ -566,7 +567,7 @@ else
 	////////////////////////////////////////////////////////////////////////
 	//929Hz notch filter, 10kHz sampling
 	////////////////////////////////////////////////////////////////////////
-	vref = (200+30*cos(theta_vout)); //u of filter
+	vref = (200+excampl*cos(theta_vout)); //u of filter
 
 	//y of filter
 	vref_filt = 0.9286*vref - 1.566*vref_n1 + 0.9286*vref_n2 + 1.566*vref_filt_n1 - 0.8573*vref_filt_n2;
@@ -962,10 +963,19 @@ void main(void)
 		////////////////////////////////////////////
 		//exciter frequency as float32 from CANbus
 		////////////////////////////////////////////
-		if(ECanaRegs.CANRMP.bit.RMP4 == 1)  //valid new data in MBX3?
+		if(ECanaRegs.CANRMP.bit.RMP4 == 1)  //valid new data in MBX4?
 		{
 			excfreq = *(float*)&ECanaMboxes.MBOX4.MDL.all; //read message
 			ECanaRegs.CANRMP.bit.RMP4 = 1;
+		}
+
+		////////////////////////////////////////////
+		//exciter amplitude as float32 from CANbus
+		////////////////////////////////////////////
+		if(ECanaRegs.CANRMP.bit.RMP5 == 1)  //valid new data in MBX5?
+		{
+			excampl = *(float*)&ECanaMboxes.MBOX5.MDL.all; //read message
+			ECanaRegs.CANRMP.bit.RMP5 = 1;
 		}
 
 		//DAC outputs for b2b converters
@@ -1071,8 +1081,8 @@ void InitializeCANboxes()
 	ECanaShadow.CANME.bit.ME3 = 1;
 	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
 
-	//Setup mailbox 4 for kernel measurement mode
-	//read byte 0 for a 1 2 or 3
+	//Setup mailbox 4 for kernel measurement frequency reference
+	//read as float
 	ECanaMboxes.MBOX4.MSGID.all = 101; // message Identifier
 	ECanaMboxes.MBOX4.MSGID.bit.IDE = 1; //extended identifier
 	//set mailbox as receive
@@ -1082,6 +1092,19 @@ void InitializeCANboxes()
 	//enable mailbox
 	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
 	ECanaShadow.CANME.bit.ME4 = 1;
+	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+
+	//Setup mailbox 5 for kernel measurement perturbation amplitude
+	//read as float
+	ECanaMboxes.MBOX5.MSGID.all = 102; // message Identifier
+	ECanaMboxes.MBOX5.MSGID.bit.IDE = 1; //extended identifier
+	//set mailbox as receive
+	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
+	ECanaShadow.CANMD.bit.MD5 = 1;  //mailbox direction to receive
+	ECanaRegs.CANMD.all = ECanaShadow.CANMD.all;
+	//enable mailbox
+	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
+	ECanaShadow.CANME.bit.ME5 = 1;
 	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
 }
 
