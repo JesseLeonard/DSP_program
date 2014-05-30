@@ -567,7 +567,7 @@ else
 	////////////////////////////////////////////////////////////////////////
 	//929Hz notch filter, 10kHz sampling
 	////////////////////////////////////////////////////////////////////////
-	vref = (200+excampl*cos(theta_vout)); //u of filter
+	vref = (380+excampl*cos(theta_vout)); //u of filter
 
 	//y of filter
 	vref_filt = 0.9286*vref - 1.566*vref_n1 + 0.9286*vref_n2 + 1.566*vref_filt_n1 - 0.8573*vref_filt_n2;
