@@ -141,7 +141,10 @@ void SetAll_AO(float32 *V)
 
 float32 duty_CAN = 0;
 float32 excfreq = 0.0;
+float32 excfreq2 = 0.0;
 float32 excampl = 0.0;
+float32 excampl2 = 0.0;
+float32 theta_vout2 = 0.0;
 float vref, vref_n1, vref_n2;
 float vref_filt, vref_filt_n1, vref_filt_n2;
 void InitializeCANboxes(void);
@@ -482,6 +485,14 @@ else
 	//	 t_inv = 0;
 		 }
 
+	//	theta_vout2 = theta_vout2 + w_inv*T;
+		theta_vout2 = theta_vout2 + 2.0*PI*excfreq2*T;
+		//t_inv = t_inv + T;
+		if (theta_vout2 > 6.28319)
+			{theta_vout2 = theta_vout2 - 6.28319;
+		//	 t_inv = 0;
+			 }
+
 	////////////////////////////////////////////////////////////////////////
 	//output voltage measurement across LC filter capacitors
 	////////////////////////////////////////////////////////////////////////
@@ -567,7 +578,7 @@ else
 	////////////////////////////////////////////////////////////////////////
 	//929Hz notch filter, 10kHz sampling
 	////////////////////////////////////////////////////////////////////////
-	vref = (380+excampl*cos(theta_vout)); //u of filter
+	vref = 380+excampl*cos(theta_vout)+excampl2*cos(theta_vout2); //u of filter
 
 	//y of filter
 	vref_filt = 0.9286*vref - 1.566*vref_n1 + 0.9286*vref_n2 + 1.566*vref_filt_n1 - 0.8573*vref_filt_n2;
@@ -978,6 +989,24 @@ void main(void)
 			ECanaRegs.CANRMP.bit.RMP5 = 1;
 		}
 
+		////////////////////////////////////////////
+		//exciter frequency 2 as float32 from CANbus
+		////////////////////////////////////////////
+		if(ECanaRegs.CANRMP.bit.RMP6 == 1)  //valid new data in MBX6?
+		{
+			excfreq2 = *(float*)&ECanaMboxes.MBOX6.MDL.all; //read message
+			ECanaRegs.CANRMP.bit.RMP6 = 1;
+		}
+
+		////////////////////////////////////////////
+		//exciter amplitude 2 as float32 from CANbus
+		////////////////////////////////////////////
+		if(ECanaRegs.CANRMP.bit.RMP7 == 1)  //valid new data in MBX7?
+		{
+			excampl2 = *(float*)&ECanaMboxes.MBOX7.MDL.all; //read message
+			ECanaRegs.CANRMP.bit.RMP7 = 1;
+		}
+
 		//DAC outputs for b2b converters
 
 		V[0] = 0;
@@ -1105,6 +1134,32 @@ void InitializeCANboxes()
 	//enable mailbox
 	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
 	ECanaShadow.CANME.bit.ME5 = 1;
+	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+
+	//Setup mailbox 6 for kernel measurement second frequency
+	//read as float
+	ECanaMboxes.MBOX6.MSGID.all = 103; // message Identifier
+	ECanaMboxes.MBOX6.MSGID.bit.IDE = 1; //extended identifier
+	//set mailbox as receive
+	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
+	ECanaShadow.CANMD.bit.MD6 = 1;  //mailbox direction to receive
+	ECanaRegs.CANMD.all = ECanaShadow.CANMD.all;
+	//enable mailbox
+	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
+	ECanaShadow.CANME.bit.ME6 = 1;
+	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+
+	//Setup mailbox 7 for kernel measurement second frequency amplitude
+	//read as float
+	ECanaMboxes.MBOX7.MSGID.all = 104; // message Identifier
+	ECanaMboxes.MBOX7.MSGID.bit.IDE = 1; //extended identifier
+	//set mailbox as receive
+	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
+	ECanaShadow.CANMD.bit.MD7 = 1;  //mailbox direction to receive
+	ECanaRegs.CANMD.all = ECanaShadow.CANMD.all;
+	//enable mailbox
+	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
+	ECanaShadow.CANME.bit.ME7 = 1;
 	ECanaRegs.CANME.all = ECanaShadow.CANME.all;
 }
 
